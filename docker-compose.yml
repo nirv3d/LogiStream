@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: logistream-postgres
+    environment:
+      POSTGRES_USER: logistics
+      POSTGRES_PASSWORD: logistics
+      POSTGRES_DB: logistics
+    ports:
+      - "5432:5432"
+    command: ["postgres", "-c", "wal_level=logical",
+              "-c", "max_wal_senders=10", "-c", "max_replication_slots=10"]
+    volumes:
+      - D:/logistream/data/pgdata:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
