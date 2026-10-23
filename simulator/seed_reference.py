@@ -92,3 +92,7 @@ def seed_customers(cur):
         "INSERT INTO customers (name, phone, address, city) VALUES (%s, %s, %s, %s)",
         rows,
     )
+
+def main():
+    with psycopg.connect(DSN) as conn:
+        
