@@ -92,7 +92,23 @@ def seed_customers(cur):
         "INSERT INTO customers (name, phone, address, city) VALUES (%s, %s, %s, %s)",
         rows,
     )
-
 def main():
     with psycopg.connect(DSN) as conn:
-        
+        with conn.cursor() as cur:
+            hubs = seed_hubs(cur)
+
+            if row_count(cur, "vehicles") == 0:
+                seed_vehicles_and_drivers(cur, hubs)
+            else:
+                print("Vehicles already present, skipping vehicles and drivers.")
+
+            if row_count(cur, "customers") == 0:
+                seed_customers(cur)
+            else:
+                print("Customers already present, skipping customers.")
+
+            for table in ("hubs", "vehicles", "drivers", "customers"):
+                print(f"{table}: {row_count(cur, table)} rows")
+
+if __name__ == "__main__": #this line checks if the script is being run directly (as opposed to being imported as a module). If it is, it calls the main() function to execute the seeding process for the database.
+    main()
