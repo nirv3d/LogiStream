@@ -1,0 +1,7 @@
+# Live simulator settings. Changing these will adjust load and speed.
+time_speedup: 1            # 1 = real time, 60 = one real second is one simulated minute
+tick_seconds: 1            # real seconds between ticks
+orders_per_tick: 0.5       # average new orders per tick
+cancel_probability: 0.03   # chance an order is cancelled at each step
+breakdown_probability: 0.01  # chance a truck breaks down each tick
+seed: 7                    # fixed seed so runs are repeatable
