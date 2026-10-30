@@ -213,3 +213,36 @@ class Simulator:
                 self.dispatch(order)
             elif order.status == "in_transit":
                 self.deliver(order)
+
+    def maybe_incident(self):
+        if self.rng.random() >= self.cfg["incident_probability"]:
+            return
+        moving = [o for o in self.active.values() if o.status == "in_transit"]
+        if not moving:
+            return
+        order = self.rng.choice(moving)
+        lost_minutes = self.rng.randint(30, 120)
+        hub_id = self.rng.choice([order.origin, order.destination])
+        description = self.rng.choice(INCIDENT_TEMPLATES).format(
+            plate=self.plates[order.vehicle_id], hub=self.hubs[hub_id]["name"]
+        )
+        self.cur.execute(
+            "INSERT INTO incident_reports (vehicle_id, hub_id, reported_at, description) "
+            "VALUES (%s, %s, %s, %s)",
+            (order.vehicle_id, hub_id, self.sim_now, description),
+        )
+        self.add_event(order.shipment_id, hub_id, "delayed", f"about {lost_minutes} min lost")
+        order.due += timedelta(minutes=lost_minutes)   # the delay carries into delivery
+        self.counts["incidents"] += 1
+        self.log("INCIDENT", description)
+
+    def maybe_mess(self):
+        """Deliberately messy data, so the silver layer has real problems to fix."""
+        # Duplicate update: same values written again, which Debezium reports as a new event
+        if self.active and self.rng.random() < self.cfg["duplicate_probability"]:
+            order = self.rng.choice(list(self.active.values()))
+            self.cur.execute(
+                "UPDATE orders SET status = %s, updated_at = %s WHERE order_id = %s",
+                (order.status, self.sim_now, order.order_id),
+            )
+            self.log("DUPLICATE", f"order {order.order_id} rewritten with the same status")
