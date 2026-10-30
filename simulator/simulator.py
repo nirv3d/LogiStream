@@ -44,3 +44,25 @@ INCIDENT_TEMPLATES = [
 def load_config():
     with open(CONFIG_PATH) as f:
         return yaml.safe_load(f)
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Straight-line distance between two points on Earth, in km."""
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = p2 - p1
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+def poisson(rng, lam):
+    """Random whole number with average `lam` (Knuth's method, fine for small lam)."""
+    if lam <= 0:
+        return 0
+    limit = math.exp(-lam)
+    k = 0
+    p = 1.0
+    while True:
+        p *= rng.random()
+        if p <= limit:
+            return k
+        k += 1
