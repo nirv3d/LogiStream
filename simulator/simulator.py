@@ -115,7 +115,21 @@ class Simulator:
             raise SystemExit("Reference data missing. Run seed_reference.py first.")
 
     def resume(self):
-        """Pick up orders left in progress by an earlier run."""
+        """Pick up orders left in progress by an earlier run, and re-sync vehicle status."""
+        # Vehicles carrying an in-transit shipment must be on_route; all others available.
+        self.cur.execute(
+            "UPDATE vehicles SET status = 'on_route' "
+            "WHERE status <> 'on_route' AND vehicle_id IN "
+            "(SELECT vehicle_id FROM shipments "
+            " WHERE status = 'in_transit' AND vehicle_id IS NOT NULL)"
+        )
+        self.cur.execute(
+            "UPDATE vehicles SET status = 'available' "
+            "WHERE status = 'on_route' AND vehicle_id NOT IN "
+            "(SELECT vehicle_id FROM shipments "
+            " WHERE status = 'in_transit' AND vehicle_id IS NOT NULL)"
+        )
+
         self.cur.execute(
             """
             SELECT o.order_id, o.status, o.origin_hub_id, o.destination_hub_id,
@@ -138,11 +152,11 @@ class Simulator:
             self.active[oid] = ActiveOrder(
                 oid, status, origin, dest, due, ship_id, veh_id, planned
             )
+        self.conn.commit()
         if self.active:
             print(f"Resumed {len(self.active)} orders already in progress.")
 
    # helpers 
- 
     def log(self, kind, message):
         print(f"  {kind:<9} {message}")
  
