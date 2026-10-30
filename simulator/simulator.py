@@ -66,3 +66,65 @@ def poisson(rng, lam):
         if p <= limit:
             return k
         k += 1
+
+def demand_multiplier(sim_now):
+    """Busier in the morning and evening, quiet at night (India time)."""
+    hour = sim_now.astimezone(IST).hour
+    if 9 <= hour < 12 or 17 <= hour < 20:
+        return 1.6
+    if hour < 6:
+        return 0.2
+    return 1.0
+
+@dataclass 
+class ActiveOrder:
+    order_id: int
+    status: str
+    origin: int
+    destination: int
+    due: datetime                       # simulated time when it moves on
+    shipment_id: int | None = None
+    vehicle_id: int | None = None
+    planned_arrival: datetime | None = None
+
+class Simulator:
+    def __init__(self, conn, cfg):
+        self.conn = conn
+        self.cur = conn.cursor()
+        self.cfg = cfg
+        self.rng = random.Random(cfg["seed"])
+        self.sim_now = datetime.now(timezone.utc)
+        self.active: dict[int, ActiveOrder] = {}
+        self.counts = {"orders": 0, "delivered": 0, "cancelled": 0, "incidents": 0}
+        self.load_reference()
+        self.resume()
+
+    # ---------- setup ----------
+ 
+    def load_reference(self):
+        cur = self.cur
+        cur.execute("SELECT hub_id, name, latitude, longitude FROM hubs ORDER BY hub_id")
+        self.hubs = {
+            r[0]: {"name": r[1], "lat": r[2], "lon": r[3]} for r in cur.fetchall()
+        }
+        cur.execute("SELECT customer_id FROM customers ORDER BY customer_id")
+        self.customer_ids = [r[0] for r in cur.fetchall()]
+        cur.execute("SELECT vehicle_id, plate_no FROM vehicles ORDER BY vehicle_id")
+        self.plates = dict(cur.fetchall())
+        if len(self.hubs) < 2 or not self.customer_ids or not self.plates:
+            raise SystemExit("Reference data missing. Run seed_reference.py first.")
+
+    def resume(self):
+        """Pick up orders left in progress by an earlier run."""
+        self.cur.execute(
+            """
+            SELECT o.order_id, o.status, o.origin_hub_id, o.destination_hub_id,
+                   s.shipment_id, s.vehicle_id, s.planned_arrival
+            FROM orders o
+            LEFT JOIN shipments s
+                   ON s.order_id = o.order_id AND s.status = 'in_transit'
+            WHERE o.status IN ('created', 'packed', 'in_transit')
+            """
+        )
+
+    
