@@ -237,7 +237,7 @@ class Simulator:
         self.log("INCIDENT", description)
 
     def maybe_mess(self):
-        """Deliberately messy data, so the silver layer has real problems to fix."""
+        #Deliberately messy data, so the silver layer has real problems to fix
         # Duplicate update: same values written again, which Debezium reports as a new event
         if self.active and self.rng.random() < self.cfg["duplicate_probability"]:
             order = self.rng.choice(list(self.active.values()))
@@ -246,3 +246,11 @@ class Simulator:
                 (order.status, self.sim_now, order.order_id),
             )
             self.log("DUPLICATE", f"order {order.order_id} rewritten with the same status")
+
+         # Late scan: an event stamped hours in the past
+        moving = [o for o in self.active.values() if o.status == "in_transit"]
+        if moving and self.rng.random() < self.cfg["late_event_probability"]:
+            order = self.rng.choice(moving)
+            late_time = self.sim_now - timedelta(hours=self.rng.randint(1, 6))
+            self.add_event(order.shipment_id, order.origin, "scanned", "late scan", late_time)
+            self.log("LATE", f"scan for order {order.order_id} stamped {late_time:%H:%M}")
