@@ -1,7 +1,13 @@
-# Live simulator settings. Changing these will adjust load and speed.
-time_speedup: 1            # 1 = real time, 60 = one real second is one simulated minute
-tick_seconds: 1            # real seconds between ticks
-orders_per_tick: 0.5       # average new orders per tick
-cancel_probability: 0.03   # chance an order is cancelled at each step
-breakdown_probability: 0.01  # chance a truck breaks down each tick
-seed: 7                    # fixed seed so runs are repeatable
+# Live simulator settings.
+seed: 7                      # fixed seed so runs are repeatable
+tick_seconds: 1              # real seconds between ticks
+time_speedup: 1                # 1 = real time, 60 = one real second is one simulated minute
+run_minutes: 0                 # stop after this many real minutes (0 = run until Ctrl+C)
+
+orders_per_tick: 0.5         # average new orders per tick (scaled up at peak hours)
+cancel_probability: 0.03     # chance a created/packed order is cancelled when it is due to move
+incident_probability: 0.01   # chance per tick that an in-transit truck has an incident
+
+# Deliberate mess, so the silver layer has real problems to fix
+duplicate_probability: 0.03  # chance per tick of re-writing an order with the same values
+late_event_probability: 0.03 # chance per tick of a scan event stamped hours in the past
