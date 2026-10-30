@@ -6,9 +6,6 @@ Every tick it:
      assigning vehicles, creating shipments and writing scan events,
   3. injects rare problems: incidents, cancellations, duplicate updates, late scans,
   4. commits everything as one batch, so Debezium sees it together.
- 
-Safe to stop with Ctrl+C and start again: it rebuilds its in-progress orders
-from Postgres.
 """
 
 import math
@@ -43,3 +40,7 @@ INCIDENT_TEMPLATES = [
     "Waterlogging near {hub} stopped {plate}; rerouting.",
     "Road closed near {hub}, {plate} is taking a longer route.",
 ]
+
+def load_config():
+    with open(CONFIG_PATH) as f:
+        return yaml.safe_load(f)
