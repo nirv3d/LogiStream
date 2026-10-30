@@ -237,7 +237,7 @@ class Simulator:
         self.log("INCIDENT", description)
 
     def maybe_mess(self):
-        #Deliberately messy data, so the silver layer has real problems to fix
+        # Deliberately messy data, so the silver layer has real problems to fix
         # Duplicate update: same values written again, which Debezium reports as a new event
         if self.active and self.rng.random() < self.cfg["duplicate_probability"]:
             order = self.rng.choice(list(self.active.values()))
@@ -254,3 +254,55 @@ class Simulator:
             late_time = self.sim_now - timedelta(hours=self.rng.randint(1, 6))
             self.add_event(order.shipment_id, order.origin, "scanned", "late scan", late_time)
             self.log("LATE", f"scan for order {order.order_id} stamped {late_time:%H:%M}")
+
+#order life cycle steps
+    def dispatch(self, order):
+        vehicle_id = self.pick_vehicle(order.origin)
+        if vehicle_id is None:
+            order.due = self.sim_now + timedelta(minutes=self.rng.randint(5, 15))
+            self.log("WAIT", f"order {order.order_id}: no vehicle free, retrying later")
+            return
+ 
+        o, d = self.hubs[order.origin], self.hubs[order.destination]
+        km = haversine_km(o["lat"], o["lon"], d["lat"], d["lon"]) * ROAD_FACTOR
+        planned_minutes = max(20.0, km / AVG_SPEED_KMH * 60)
+        planned = self.sim_now + timedelta(minutes=planned_minutes)
+        # Real trips vary around the plan
+        actual_minutes = planned_minutes * self.rng.lognormvariate(0, 0.2)
+ 
+        self.cur.execute(
+            "UPDATE vehicles SET status = 'on_route' WHERE vehicle_id = %s", (vehicle_id,)
+        )
+        self.cur.execute(
+            "INSERT INTO shipments (order_id, vehicle_id, planned_arrival, status) "
+            "VALUES (%s, %s, %s, 'in_transit') RETURNING shipment_id",
+            (order.order_id, vehicle_id, planned),
+        )
+        order.shipment_id = self.cur.fetchone()[0]
+        order.vehicle_id = vehicle_id
+        order.planned_arrival = planned
+        order.due = self.sim_now + timedelta(minutes=actual_minutes)
+ 
+        self.add_event(order.shipment_id, order.origin, "departed")
+        self.set_status(order, "in_transit")
+ 
+    def deliver(self, order):
+        delay = round((self.sim_now - order.planned_arrival).total_seconds() / 60)
+        self.cur.execute(
+            "UPDATE shipments SET actual_arrival = %s, delay_minutes = %s, "
+            "status = 'delivered' WHERE shipment_id = %s",
+            (self.sim_now, delay, order.shipment_id),
+        )
+        self.cur.execute(
+            "UPDATE vehicles SET status = 'available' WHERE vehicle_id = %s",
+            (order.vehicle_id,),
+        )
+        self.add_event(order.shipment_id, order.destination, "delivered")
+        self.set_status(order, "delivered")
+        del self.active[order.order_id]
+        self.counts["delivered"] += 1
+ 
+    def cancel(self, order):
+        self.set_status(order, "cancelled")
+        del self.active[order.order_id]
+        self.counts["cancelled"] += 1
