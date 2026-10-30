@@ -1,3 +1,16 @@
+"""Live courier simulator
+ 
+Every tick it:
+  1. creates new orders (more at peak hours),
+  2. moves due orders through created -> packed -> in_transit -> delivered,
+     assigning vehicles, creating shipments and writing scan events,
+  3. injects rare problems: incidents, cancellations, duplicate updates, late scans,
+  4. commits everything as one batch, so Debezium sees it together.
+ 
+Safe to stop with Ctrl+C and start again: it rebuilds its in-progress orders
+from Postgres.
+"""
+
 import math
 import os
 import random
