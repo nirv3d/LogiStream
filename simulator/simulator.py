@@ -126,5 +126,90 @@ class Simulator:
             WHERE o.status IN ('created', 'packed', 'in_transit')
             """
         )
+        for oid, status, origin, dest, ship_id, veh_id, planned in self.cur.fetchall():
+            if status == "in_transit":
+                if ship_id is None:
+                    continue
+                due = max(planned, self.sim_now) + timedelta(
+                    minutes=self.rng.randint(1, 30)
+                )
+            else:
+                due = self.sim_now + self.handling_time(status)
+            self.active[oid] = ActiveOrder(
+                oid, status, origin, dest, due, ship_id, veh_id, planned
+            )
+        if self.active:
+            print(f"Resumed {len(self.active)} orders already in progress.")
 
-    
+   # helpers 
+ 
+    def log(self, kind, message):
+        print(f"  {kind:<9} {message}")
+ 
+    def handling_time(self, stage):
+        return timedelta(minutes=self.rng.randint(*HANDLING_MINUTES[stage]))
+ 
+    def add_event(self, shipment_id, hub_id, event_type, notes=None, event_time=None):
+        self.cur.execute(
+            "INSERT INTO shipment_events (shipment_id, hub_id, event_type, event_time, notes) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (shipment_id, hub_id, event_type, event_time or self.sim_now, notes),
+        )
+ 
+    def set_status(self, order, new_status):
+        old = order.status
+        self.cur.execute(
+            "UPDATE orders SET status = %s, updated_at = %s WHERE order_id = %s",
+            (new_status, self.sim_now, order.order_id),
+        )
+        order.status = new_status
+        self.log("MOVE", f"order {order.order_id}: {old} -> {new_status}")
+ 
+    def pick_vehicle(self, origin_hub):
+        """Prefer a free vehicle based at the origin hub, otherwise any free one."""
+        self.cur.execute(
+            "SELECT vehicle_id, home_hub_id FROM vehicles "
+            "WHERE status = 'available' ORDER BY vehicle_id"
+        )
+        rows = self.cur.fetchall()
+        if not rows:
+            return None
+        local = [v for v, hub in rows if hub == origin_hub]
+        return self.rng.choice(local or [v for v, _ in rows])
+
+   # ---------- the four things that happen each tick ----------
+ 
+    def new_orders(self):
+        rate = self.cfg["orders_per_tick"] * demand_multiplier(self.sim_now)
+        for _ in range(poisson(self.rng, rate)):
+            origin, destination = self.rng.sample(list(self.hubs), 2)
+            customer = self.rng.choice(self.customer_ids)
+            weight = round(self.rng.uniform(0.5, 30.0), 2)
+            self.cur.execute(
+                "INSERT INTO orders (customer_id, origin_hub_id, destination_hub_id, "
+                "weight_kg, status, created_at, updated_at) "
+                "VALUES (%s, %s, %s, %s, 'created', %s, %s) RETURNING order_id",
+                (customer, origin, destination, weight, self.sim_now, self.sim_now),
+            )
+            order_id = self.cur.fetchone()[0]
+            self.active[order_id] = ActiveOrder(
+                order_id, "created", origin, destination,
+                self.sim_now + self.handling_time("created"),
+            )
+            self.counts["orders"] += 1
+            self.log("NEW", f"order {order_id}")
+ 
+    def process_due(self):
+        for order in list(self.active.values()):
+            if order.due > self.sim_now:
+                continue
+            can_cancel = order.status in ("created", "packed")
+            if can_cancel and self.rng.random() < self.cfg["cancel_probability"]:
+                self.cancel(order)
+            elif order.status == "created":
+                self.set_status(order, "packed")
+                order.due = self.sim_now + self.handling_time("packed")
+            elif order.status == "packed":
+                self.dispatch(order)
+            elif order.status == "in_transit":
+                self.deliver(order)
