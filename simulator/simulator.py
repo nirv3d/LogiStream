@@ -306,3 +306,49 @@ class Simulator:
         self.set_status(order, "cancelled")
         del self.active[order.order_id]
         self.counts["cancelled"] += 1
+
+    # ---------- the loop ----------
+ 
+    def run(self):
+        cfg = self.cfg
+        run_minutes = cfg.get("run_minutes", 0)
+        started = time.monotonic()
+        tick = 0
+        print("Simulator running. Press Ctrl+C to stop.")
+        try:
+            while True:
+                tick_started = time.monotonic()
+                tick += 1
+                # One tick = tick_seconds of real time = tick_seconds * speedup of simulated time
+                self.sim_now += timedelta(seconds=cfg["tick_seconds"] * cfg["time_speedup"])
+ 
+                self.new_orders()
+                self.process_due()
+                self.maybe_incident()
+                self.maybe_mess()
+                self.conn.commit()          # the whole tick becomes visible at once
+ 
+                if tick % 10 == 0:
+                    print(
+                        f"[tick {tick} | sim {self.sim_now.astimezone(IST):%d %b %H:%M} IST | "
+                        f"active {len(self.active)} | created {self.counts['orders']} | "
+                        f"delivered {self.counts['delivered']}]"
+                    )
+                if run_minutes and (time.monotonic() - started) / 60 >= run_minutes:
+                    break
+                time.sleep(max(0.0, cfg["tick_seconds"] - (time.monotonic() - tick_started)))
+        except KeyboardInterrupt:
+            self.conn.rollback()            # drop the half-finished tick
+            print("\nStopped.")
+        finally:
+            print(f"Totals this run: {self.counts}")
+ 
+ 
+def main():
+    cfg = load_config()
+    with psycopg.connect(DSN) as conn:
+        Simulator(conn, cfg).run()
+ 
+ 
+if __name__ == "__main__":
+    main()
