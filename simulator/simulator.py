@@ -218,7 +218,7 @@ class Simulator:
         for order in list(self.active.values()):
             if order.due > self.sim_now:
                 continue
-            can_cancel = order.status in ("created", "packed")
+            can_cancel = order.status in ("created", "packed") and not order.waiting
             if can_cancel and self.rng.random() < self.cfg["cancel_probability"]:
                 self.cancel(order)
             elif order.status == "created":
@@ -274,6 +274,7 @@ class Simulator:
     def dispatch(self, order):
         vehicle_id = self.pick_vehicle(order.origin)
         if vehicle_id is None:
+            order.waiting = True
             order.due = self.sim_now + timedelta(minutes=self.rng.randint(5, 15))
             self.log("WAIT", f"order {order.order_id}: no vehicle free, retrying later")
             return
