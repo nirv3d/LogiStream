@@ -86,6 +86,7 @@ class ActiveOrder:
     shipment_id: int | None = None
     vehicle_id: int | None = None
     planned_arrival: datetime | None = None
+    waiting: bool = False
 
 class Simulator:
     def __init__(self, conn, cfg):

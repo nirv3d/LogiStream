@@ -1,10 +1,10 @@
 # Live simulator settings.
 seed: 7                      # fixed seed so runs are repeatable
 tick_seconds: 1              # real seconds between ticks
-time_speedup: 1                # 1 = real time, 60 = one real second is one simulated minute
+time_speedup: 60              #This makes one real second count as one simulated minute,
 run_minutes: 0                 # stop after this many real minutes (0 = run until Ctrl+C)
 
-orders_per_tick: 0.5         # average new orders per tick (scaled up at peak hours)
+orders_per_tick: 0.15         # average new orders per tick (scaled up at peak hours)
 cancel_probability: 0.03     # chance a created/packed order is cancelled when it is due to move
 incident_probability: 0.01   # chance per tick that an in-transit truck has an incident
 
