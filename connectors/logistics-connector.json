@@ -1,0 +1,20 @@
+{
+    "name" : "logistics-connector",
+    "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "logistics",
+    "database.password": "logistics",
+    "database.dbname": "logistics",
+    "topic.prefix": "logistics",
+    "plugin.name": "pgoutput",
+    "slot.name": "logistream_slot",
+    "publication.name": "logistream_pub",
+    "publication.autocreate.mode": "filtered",
+    "table.include.list": "public.hubs,public.vehicles,public.drivers,public.customers,public.orders,public.shipments,public.shipment_events,public.incident_reports",
+    "snapshot.mode": "initial",
+    "tombstones.on.delete": "false",
+    "decimal.handling.mode": "double"
+  }
+}
