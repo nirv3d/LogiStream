@@ -52,5 +52,18 @@ services:
       STATUS_STORAGE_REPLICATION_FACTOR: 1
       HEAP_OPTS: "-Xms256M -Xmx1G"
 
+  spark:
+    build: ./spark
+    container_name: logistream-spark
+    profiles: ["tools"]
+    depends_on:
+      - redpanda
+    mem_limit: 3g
+    volumes:
+      - ./spark:/app
+      - D:/logistream/lake:/lake
+      - spark-ivy:/root/.ivy2
+
 volumes:
   redpanda-data:
+  spark-ivy:
