@@ -22,6 +22,7 @@ builder = (
     .config("spark.sql.catalog.spark_catalog",
             "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     .config("spark.sql.shuffle.partitions", "4")
+    .config("spark.jars.ivy", "/root/.ivy2")
 )
 spark = configure_spark_with_delta_pip(builder, extra_packages=[KAFKA_PKG]).getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
