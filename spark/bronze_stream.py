@@ -32,7 +32,7 @@ raw = (
     .option("kafka.bootstrap.servers", BOOTSTRAP)
     .option("subscribePattern", TOPIC_PATTERN)
     .option("startingOffsets", "earliest")
-    .option("maxOffsetsPerTrigger", 20000)
+    .option("maxOffsetsPerTrigger", 5000)
     .load()
 )
 

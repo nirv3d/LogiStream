@@ -1,7 +1,7 @@
 # Live simulator settings.
 seed: 7                      # fixed seed so runs are repeatable
 tick_seconds: 1              # real seconds between ticks
-time_speedup: 60              #This makes one real second count as one simulated minute,
+time_speedup: 1
 run_minutes: 0                 # stop after this many real minutes (0 = run until Ctrl+C)
 
 orders_per_tick: 0.15         # average new orders per tick (scaled up at peak hours)
