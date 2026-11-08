@@ -58,7 +58,7 @@ services:
     profiles: ["tools"]
     depends_on:
       - redpanda
-    mem_limit: 3g
+    mem_limit: 4g
     volumes:
       - ./spark:/app
       - D:/logistream/lake:/lake

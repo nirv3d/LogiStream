@@ -51,7 +51,7 @@ query = (
     .outputMode("append")
     .option("checkpointLocation", CHECKPOINT)
     .partitionBy("topic")
-    .trigger(processingTime="15 seconds")
+    .trigger(processingTime="30 seconds")
     .start(BRONZE_PATH)
 )
 query.awaitTermination()
