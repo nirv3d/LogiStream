@@ -6,7 +6,7 @@ from faker import Faker
 from psycopg import sql
 
 SEED = 42
-NUM_VEHICLES = 30
+NUM_VEHICLES = 100
 NUM_CUSTOMERS = 200
 
 DSN = os.getenv("LOGISTREAM_DSN", "host=localhost port=5432 dbname=logistics user=logistics password=logistics")
