@@ -14,7 +14,7 @@ PG = dict(
 )
 IST = "Asia/Kolkata"
  
-# connections 
+# ---------- connections ----------
 con = duckdb.connect()
 con.execute("INSTALL delta; LOAD delta;")
 con.execute("SET TimeZone='UTC'")
@@ -44,12 +44,14 @@ def as_row(rows):
     return tuple(rows[0])
  
  
-# comparison 
+# ---------- comparison ----------
 def same(a, b, tol):
     if isinstance(a, tuple):
         return isinstance(b, tuple) and len(a) == len(b) and all(same(x, y, tol) for x, y in zip(a, b))
     if a is None or b is None:
         return a == b
+    if isinstance(a, str) or isinstance(b, str):
+        return a == b  # text values (e.g. order status) must match exactly
     return abs(float(a) - float(b)) <= tol
  
  
@@ -74,7 +76,7 @@ def check(name, pg_val, gold_val, tol=0.0):
  
 d_ist = lambda col: f"({col} AT TIME ZONE '{IST}')::date"
  
-# orders 
+# ---------- orders ----------
 check("orders: total",
       pg_rows("SELECT count(*) FROM orders")[0][0],
       gold_rows("SELECT count(*) FROM fact_orders")[0][0])
@@ -95,7 +97,7 @@ check("orders: status of the 5 newest orders (single-order lookup)",
       as_dict(pg_rows(f"SELECT order_id, status FROM orders WHERE order_id IN ({ids})")),
       as_dict(gold_rows(f"SELECT order_id, order_status FROM fact_orders WHERE order_id IN ({ids})")))
  
-# shipments 
+# ---------- shipments ----------
 check("shipments: (total, delivered, late)",
       as_row(pg_rows("""SELECT count(*), count(actual_arrival),
                                count(*) FILTER (WHERE actual_arrival > planned_arrival)
@@ -133,7 +135,7 @@ check("vehicles: late shipments per vehicle",
       as_dict(gold_rows("""SELECT vehicle_id, count(*) FROM fact_shipments
                            WHERE is_late GROUP BY 1""")))
  
-# hubs 
+# ---------- hubs ----------
 check("hubs: late deliveries per destination hub (agg_hub_daily vs raw SQL)",
       as_dict(pg_rows("""SELECT o.destination_hub_id,
                                 count(*) FILTER (WHERE s.actual_arrival > s.planned_arrival)
@@ -163,7 +165,7 @@ check("hubs: avg origin hub processing minutes (order created -> departed, all s
                    FROM agg_hub_daily WHERE shipments_dispatched > 0""")[0][0],
       tol=0.05)
  
-# incidents 
+# ---------- incidents ----------
 check("incidents: per vehicle",
       as_dict(pg_rows("SELECT vehicle_id, count(*) FROM incident_reports GROUP BY 1")),
       as_dict(gold_rows("SELECT vehicle_id, count(*) FROM fact_incidents GROUP BY 1")))
@@ -200,7 +202,7 @@ check("daily: incidents per day",
       as_dict(pg_rows(f"SELECT {d_ist('reported_at')}, count(*) FROM incident_reports GROUP BY 1")),
       as_dict(gold_rows("SELECT date, incidents FROM agg_daily_overview WHERE incidents > 0")))
  
-# summary 
+# ---------- summary ----------
 passed = sum(results)
 print(f"\n{passed}/{len(results)} checks passed")
 sys.exit(0 if passed == len(results) else 1)
