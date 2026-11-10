@@ -89,3 +89,23 @@ incidents = read_silver("incident_reports").select(
     "incident_id", "vehicle_id", "hub_id",
     F.to_timestamp("reported_at").alias("reported_at"), "description",
 )
+
+# origin/destination hub lookups
+oh = hubs.select(
+    F.col("hub_id").alias("origin_hub_id"),
+    F.col("hub_name").alias("origin_hub_name"),
+    F.col("hub_city").alias("origin_city"),
+)
+dh = hubs.select(
+    F.col("hub_id").alias("destination_hub_id"),
+    F.col("hub_name").alias("destination_hub_name"),
+    F.col("hub_city").alias("destination_city"),
+)
+
+# "now" for the whole lake = latest event time we have (NOT the wall clock), so gold gives the same answers whenever you run it.
+as_of_df = (
+    events.select(F.col("event_time").alias("t"))
+    .unionByName(orders.select(F.col("updated_at").alias("t")))
+    .unionByName(orders.select(F.col("created_at").alias("t")))
+    .agg(F.max("t").alias("as_of"))
+)
