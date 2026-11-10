@@ -224,3 +224,159 @@ fact_shipments = (
     )
     .cache()
 )
+
+
+
+#fact_incidents 
+fact_incidents = (
+    incidents.join(vehicles, "vehicle_id", "left")
+    .join(hubs, "hub_id", "left")
+    .withColumn("reported_date", day("reported_at"))
+    .select(
+        "incident_id", "vehicle_id", "plate_no", "hub_id", "hub_name",
+        F.col("hub_city").alias("city"),
+        "reported_at", "reported_date", "description",
+    )
+)
+
+
+
+ 
+# ---------- agg_hub_daily ----------
+# Three different meanings of "hub", kept in separate columns on purpose:
+#   destination hub -> deliveries, late_deliveries ... (by arrival date)
+#   origin hub      -> shipments_dispatched, orders_created, orders_cancelled
+#   any event hub   -> shipments_touched (departed / delivered / delayed event at this hub that day;
+#                      'scanned' is ignored: the simulator writes it as random late-stamped noise)
+dest = (
+    fact_shipments.filter("is_delivered")
+    .groupBy(F.col("destination_hub_id").alias("hub_id"), F.col("arrival_date").alias("date"))
+    .agg(
+        F.count("*").alias("deliveries"),
+        F.sum(as_int("is_late")).alias("late_deliveries"),
+        F.sum(as_int("is_on_time")).alias("on_time_deliveries"),
+        F.round(F.avg(F.when(F.col("is_late"), F.col("delay_minutes"))), 2).alias("avg_delay_minutes_late"),
+        F.round(F.avg("delivery_minutes"), 2).alias("avg_delivery_minutes"),
+    )
+)
+dispatched = (
+    fact_shipments.filter(F.col("departed_at").isNotNull())
+    .groupBy(F.col("origin_hub_id").alias("hub_id"), F.col("departed_date").alias("date"))
+    .agg(
+        F.count("*").alias("shipments_dispatched"),
+        F.round(F.avg("order_to_dispatch_minutes"), 2).alias("avg_order_to_dispatch_minutes"),
+    )
+)
+created = fact_orders.groupBy(
+    F.col("origin_hub_id").alias("hub_id"), F.col("created_date").alias("date")
+).agg(F.count("*").alias("orders_created"))
+cancelled = (
+    fact_orders.filter("is_cancelled")
+    .groupBy(F.col("origin_hub_id").alias("hub_id"), F.col("cancelled_date").alias("date"))
+    .agg(F.count("*").alias("orders_cancelled"))
+)
+inc_hub = fact_incidents.groupBy(
+    F.col("hub_id"), F.col("reported_date").alias("date")
+).agg(F.count("*").alias("incident_count"))
+touched = (
+    events.filter(F.col("event_type") != "scanned")
+    .withColumn("date", day("event_time"))
+    .groupBy("hub_id", "date")
+    .agg(F.countDistinct("shipment_id").alias("shipments_touched"))
+)
+ 
+hub_count_cols = [
+    "deliveries", "late_deliveries", "on_time_deliveries", "shipments_dispatched",
+    "orders_created", "orders_cancelled", "incident_count", "shipments_touched",
+]
+agg_hub_daily = (
+    combine([dest, dispatched, created, cancelled, inc_hub, touched], ["hub_id", "date"])
+    .filter(F.col("hub_id").isNotNull() & F.col("date").isNotNull())
+    .join(hubs.select("hub_id", "hub_name", F.col("hub_city").alias("city")), "hub_id", "left")
+    .fillna(0, subset=hub_count_cols)
+    .withColumn(
+        "on_time_rate_pct",
+        F.when(F.col("deliveries") > 0, F.round(F.col("on_time_deliveries") * 100.0 / F.col("deliveries"), 2)),
+    )
+    .select(
+        "date", "hub_id", "hub_name", "city",
+        "deliveries", "on_time_deliveries", "late_deliveries", "on_time_rate_pct",
+        "avg_delay_minutes_late", "avg_delivery_minutes",
+        "shipments_dispatched", "avg_order_to_dispatch_minutes",
+        F.col("avg_order_to_dispatch_minutes").alias("avg_hub_processing_minutes"),
+        "orders_created", "orders_cancelled",
+        "incident_count", "shipments_touched",
+    )
+    .orderBy("date", "hub_id")
+)
+ 
+# ---------- agg_daily_overview ----------
+ov_created = fact_orders.groupBy(F.col("created_date").alias("date")).agg(
+    F.count("*").alias("orders_created"),
+    F.sum(as_int("is_cancelled")).alias("orders_created_cancelled"),
+)
+ov_cancelled = (
+    fact_orders.filter("is_cancelled")
+    .groupBy(F.col("cancelled_date").alias("date"))
+    .agg(F.count("*").alias("orders_cancelled_on_day"))
+)
+ov_dispatched = (
+    fact_shipments.filter(F.col("departed_at").isNotNull())
+    .groupBy(F.col("departed_date").alias("date"))
+    .agg(F.count("*").alias("shipments_dispatched"))
+)
+ov_delivered = (
+    fact_shipments.filter("is_delivered")
+    .groupBy(F.col("arrival_date").alias("date"))
+    .agg(
+        F.count("*").alias("deliveries"),
+        F.sum(as_int("is_late")).alias("late_deliveries"),
+        F.sum(as_int("is_on_time")).alias("on_time_deliveries"),
+        F.round(F.avg("delivery_minutes"), 2).alias("avg_delivery_minutes"),
+        F.round(F.avg(F.when(F.col("is_late"), F.col("delay_minutes"))), 2).alias("avg_delay_minutes_late"),
+    )
+)
+ov_incidents = fact_incidents.groupBy(F.col("reported_date").alias("date")).agg(
+    F.count("*").alias("incidents")
+)
+ 
+ov_count_cols = [
+    "orders_created", "orders_created_cancelled", "orders_cancelled_on_day",
+    "shipments_dispatched", "deliveries", "late_deliveries", "on_time_deliveries", "incidents",
+]
+agg_daily_overview = (
+    combine([ov_created, ov_cancelled, ov_dispatched, ov_delivered, ov_incidents], ["date"])
+    .filter(F.col("date").isNotNull())
+    .fillna(0, subset=ov_count_cols)
+    .withColumn(
+        "cancellation_rate_pct",  # of the orders CREATED that day, how many ended cancelled
+        F.when(F.col("orders_created") > 0,
+               F.round(F.col("orders_created_cancelled") * 100.0 / F.col("orders_created"), 2)),
+    )
+    .withColumn(
+        "on_time_rate_pct",
+        F.when(F.col("deliveries") > 0, F.round(F.col("on_time_deliveries") * 100.0 / F.col("deliveries"), 2)),
+    )
+    .select(
+        "date",
+        "orders_created", "orders_created_cancelled", "cancellation_rate_pct", "orders_cancelled_on_day",
+        "shipments_dispatched",
+        "deliveries", "on_time_deliveries", "late_deliveries", "on_time_rate_pct",
+        "avg_delivery_minutes", "avg_delay_minutes_late",
+        "incidents",
+    )
+    .orderBy("date")
+)
+
+
+print("Writing gold tables:")
+write(fact_orders, "fact_orders")
+write(fact_shipments, "fact_shipments")
+write(fact_incidents, "fact_incidents")
+write(agg_hub_daily, "agg_hub_daily")
+write(agg_daily_overview, "agg_daily_overview")
+write(as_of_df.withColumn("built_at", F.current_timestamp()), "meta")
+ 
+print("Done. as_of (latest event time in the lake):")
+spark.read.format("delta").load(f"{GOLD}/meta").show(truncate=False)
+spark.stop()
