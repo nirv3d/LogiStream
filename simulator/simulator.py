@@ -30,7 +30,7 @@ IST = timezone(timedelta(hours=5, minutes=30))
 HANDLING_MINUTES = {"created": (5, 20), "packed": (10, 40)}
 
 # Average road speed in km/h, and how much longer roads are than a straight line
-AVG_SPEED_KMH = 30
+AVG_SPEED_KMH = 50
 ROAD_FACTOR = 1.3
 
 INCIDENT_TEMPLATES = [
