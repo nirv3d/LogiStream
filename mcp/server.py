@@ -1,17 +1,3 @@
-"""
-server.py - LogiStream MCP server.
-
-Each @mcp.tool() below is one "button" the AI agent can press. A tool runs a
-fixed SQL query over the gold tables (through gold_db.py) and returns the rows
-plus the as_of time. The docstring of each tool is what the AI reads to decide
-which tool to use, so keep them clear.
-
-Put this at D:\\LogiStream\\mcp\\server.py   (next to gold_db.py)
-Needs: pip install mcp
-Run:   python mcp\\server.py      (it waits silently for an agent to connect; that is normal)
-
-IMPORTANT: never print() in this file. MCP talks over stdout, so prints break it.
-"""
 import os
 
 from mcp.server.fastmcp import FastMCP
