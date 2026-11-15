@@ -1,0 +1,1808 @@
+{
+  "as_of": "2026-11-15T03:53:01.305953+00:00",
+  "generated_at": "2026-11-15T04:27:03.382247Z",
+  "questions": [
+    {
+      "id": "D1",
+      "category": "delivery",
+      "question": "What is the average delivery time?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "End-to-end: order created to actual arrival, in minutes.",
+      "answer": {
+        "columns": [
+          "avg_delivery_minutes"
+        ],
+        "rows": [
+          [
+            111.94
+          ]
+        ]
+      }
+    },
+    {
+      "id": "D2",
+      "category": "delivery",
+      "question": "What percentage of shipments were delivered late?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Percentage of DELIVERED shipments. Undelivered ones are not counted.",
+      "answer": {
+        "columns": [
+          "late_pct",
+          "late_shipments",
+          "delivered_shipments"
+        ],
+        "rows": [
+          [
+            65.0,
+            988,
+            1520
+          ]
+        ]
+      }
+    },
+    {
+      "id": "D3",
+      "category": "delivery",
+      "question": "Show all currently delayed shipments.",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Score on the SET of shipment ids. Can be empty if nothing is delayed at as_of.",
+      "answer": {
+        "columns": [
+          "shipment_id",
+          "order_id",
+          "vehicle_id",
+          "delayed_minutes"
+        ],
+        "rows": [
+          [
+            865,
+            915,
+            104,
+            363
+          ],
+          [
+            875,
+            952,
+            46,
+            356
+          ],
+          [
+            856,
+            923,
+            101,
+            354
+          ],
+          [
+            896,
+            971,
+            167,
+            341
+          ],
+          [
+            963,
+            1023,
+            128,
+            282
+          ],
+          [
+            952,
+            998,
+            68,
+            255
+          ],
+          [
+            1051,
+            1111,
+            158,
+            200
+          ],
+          [
+            1046,
+            1104,
+            161,
+            175
+          ],
+          [
+            1064,
+            1134,
+            15,
+            156
+          ],
+          [
+            1084,
+            1165,
+            42,
+            136
+          ],
+          [
+            1159,
+            1213,
+            40,
+            126
+          ],
+          [
+            1130,
+            1225,
+            31,
+            125
+          ],
+          [
+            1215,
+            1291,
+            57,
+            116
+          ],
+          [
+            1189,
+            1260,
+            110,
+            110
+          ],
+          [
+            1295,
+            1361,
+            125,
+            99
+          ],
+          [
+            1278,
+            1300,
+            89,
+            94
+          ],
+          [
+            1261,
+            1360,
+            100,
+            88
+          ],
+          [
+            1292,
+            1305,
+            69,
+            88
+          ],
+          [
+            1346,
+            1618,
+            129,
+            86
+          ],
+          [
+            1353,
+            1522,
+            132,
+            82
+          ],
+          [
+            1354,
+            1393,
+            88,
+            82
+          ],
+          [
+            1357,
+            1520,
+            131,
+            79
+          ],
+          [
+            1309,
+            1411,
+            74,
+            73
+          ],
+          [
+            1402,
+            1677,
+            43,
+            72
+          ],
+          [
+            1223,
+            1285,
+            159,
+            69
+          ],
+          [
+            1416,
+            1583,
+            67,
+            69
+          ],
+          [
+            1341,
+            1554,
+            162,
+            64
+          ],
+          [
+            1285,
+            1401,
+            113,
+            59
+          ],
+          [
+            1298,
+            1412,
+            11,
+            53
+          ],
+          [
+            1465,
+            1481,
+            157,
+            49
+          ],
+          [
+            1388,
+            1584,
+            141,
+            46
+          ],
+          [
+            1496,
+            1612,
+            26,
+            41
+          ],
+          [
+            1501,
+            1832,
+            108,
+            39
+          ],
+          [
+            1486,
+            1443,
+            144,
+            37
+          ],
+          [
+            1382,
+            1687,
+            155,
+            36
+          ],
+          [
+            1507,
+            1548,
+            86,
+            36
+          ],
+          [
+            1443,
+            1787,
+            139,
+            33
+          ],
+          [
+            1495,
+            1272,
+            120,
+            32
+          ],
+          [
+            1462,
+            1478,
+            99,
+            29
+          ],
+          [
+            1538,
+            1557,
+            5,
+            23
+          ],
+          [
+            1468,
+            1377,
+            71,
+            22
+          ],
+          [
+            1546,
+            1799,
+            79,
+            22
+          ],
+          [
+            1549,
+            1900,
+            80,
+            22
+          ],
+          [
+            1475,
+            1615,
+            107,
+            15
+          ],
+          [
+            1499,
+            1646,
+            170,
+            15
+          ],
+          [
+            1591,
+            1985,
+            41,
+            9
+          ],
+          [
+            1542,
+            1807,
+            123,
+            7
+          ],
+          [
+            1606,
+            1550,
+            149,
+            6
+          ],
+          [
+            1557,
+            1639,
+            50,
+            1
+          ],
+          [
+            1611,
+            1820,
+            84,
+            1
+          ],
+          [
+            1564,
+            1735,
+            153,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "D4",
+      "category": "delivery",
+      "question": "How many shipments were delivered on time today?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "'Today' = the Indian-time day of as_of.",
+      "answer": {
+        "columns": [
+          "on_time_today"
+        ],
+        "rows": [
+          [
+            446
+          ]
+        ]
+      }
+    },
+    {
+      "id": "D5",
+      "category": "delivery",
+      "question": "What is the average delay in minutes for late shipments?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "avg_delay_minutes"
+        ],
+        "rows": [
+          [
+            26.66
+          ]
+        ]
+      }
+    },
+    {
+      "id": "D6",
+      "category": "delivery",
+      "question": "What is the on-time rate for each destination city?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "city",
+          "deliveries",
+          "on_time_pct"
+        ],
+        "rows": [
+          [
+            "Noida",
+            180,
+            40.0
+          ],
+          [
+            "New Delhi",
+            395,
+            39.24
+          ],
+          [
+            "Gurugram",
+            179,
+            36.31
+          ],
+          [
+            "Delhi",
+            582,
+            33.68
+          ],
+          [
+            "Greater Noida",
+            184,
+            23.91
+          ]
+        ]
+      }
+    },
+    {
+      "id": "H1",
+      "category": "hub",
+      "question": "Which hub has the highest number of late shipments?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Late deliveries are attributed to the DESTINATION hub. First row is the answer.",
+      "answer": {
+        "columns": [
+          "hub",
+          "late_deliveries"
+        ],
+        "rows": [
+          [
+            "Rohini Depot",
+            141
+          ],
+          [
+            "Greater Noida Depot",
+            140
+          ],
+          [
+            "Mayur Vihar Depot",
+            133
+          ],
+          [
+            "Tagore Garden Depot",
+            130
+          ],
+          [
+            "Cyber City Depot",
+            114
+          ],
+          [
+            "Dwarka Depot",
+            112
+          ],
+          [
+            "Connaught Place Central",
+            110
+          ],
+          [
+            "Noida Sector 62 Depot",
+            108
+          ]
+        ]
+      }
+    },
+    {
+      "id": "H2",
+      "category": "hub",
+      "question": "Compare the performance of Tagore Garden Depot and Noida Sector 62 Depot.",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "hub",
+          "deliveries",
+          "late_deliveries",
+          "on_time_pct",
+          "avg_delay_minutes_late"
+        ],
+        "rows": [
+          [
+            "Noida Sector 62 Depot",
+            180,
+            108,
+            40.0,
+            27.81
+          ],
+          [
+            "Tagore Garden Depot",
+            204,
+            130,
+            36.27,
+            35.3
+          ]
+        ]
+      }
+    },
+    {
+      "id": "H3",
+      "category": "hub",
+      "question": "How many shipments passed through each hub?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "A shipment passes through its origin hub and its destination hub (no other hubs).",
+      "answer": {
+        "columns": [
+          "hub",
+          "shipments"
+        ],
+        "rows": [
+          [
+            "Dwarka Depot",
+            457
+          ],
+          [
+            "Mayur Vihar Depot",
+            439
+          ],
+          [
+            "Greater Noida Depot",
+            430
+          ],
+          [
+            "Rohini Depot",
+            427
+          ],
+          [
+            "Connaught Place Central",
+            418
+          ],
+          [
+            "Tagore Garden Depot",
+            418
+          ],
+          [
+            "Noida Sector 62 Depot",
+            409
+          ],
+          [
+            "Cyber City Depot",
+            382
+          ]
+        ]
+      }
+    },
+    {
+      "id": "H4",
+      "category": "hub",
+      "question": "Which hub has the highest incident count?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "hub",
+          "incidents"
+        ],
+        "rows": [
+          [
+            "Greater Noida Depot",
+            76
+          ],
+          [
+            "Tagore Garden Depot",
+            65
+          ],
+          [
+            "Dwarka Depot",
+            59
+          ],
+          [
+            "Rohini Depot",
+            54
+          ],
+          [
+            "Noida Sector 62 Depot",
+            51
+          ],
+          [
+            "Mayur Vihar Depot",
+            40
+          ],
+          [
+            "Cyber City Depot",
+            34
+          ],
+          [
+            "Connaught Place Central",
+            30
+          ]
+        ]
+      }
+    },
+    {
+      "id": "H5",
+      "category": "hub",
+      "question": "Which hub has the longest average processing time?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Origin hub processing time: order created to departed. A good answer says what it measures.",
+      "answer": {
+        "columns": [
+          "hub",
+          "avg_processing_minutes",
+          "shipments"
+        ],
+        "rows": [
+          [
+            "Noida Sector 62 Depot",
+            63.18,
+            205
+          ],
+          [
+            "Tagore Garden Depot",
+            62.38,
+            195
+          ],
+          [
+            "Connaught Place Central",
+            60.54,
+            215
+          ],
+          [
+            "Rohini Depot",
+            60.48,
+            208
+          ],
+          [
+            "Cyber City Depot",
+            59.7,
+            178
+          ],
+          [
+            "Dwarka Depot",
+            59.47,
+            247
+          ],
+          [
+            "Greater Noida Depot",
+            57.13,
+            217
+          ],
+          [
+            "Mayur Vihar Depot",
+            56.38,
+            225
+          ]
+        ]
+      }
+    },
+    {
+      "id": "H6",
+      "category": "hub",
+      "question": "Which hub has the best on-time delivery rate?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "hub",
+          "deliveries",
+          "on_time_pct"
+        ],
+        "rows": [
+          [
+            "Connaught Place Central",
+            191,
+            42.41
+          ],
+          [
+            "Noida Sector 62 Depot",
+            180,
+            40.0
+          ],
+          [
+            "Dwarka Depot",
+            184,
+            39.13
+          ],
+          [
+            "Cyber City Depot",
+            179,
+            36.31
+          ],
+          [
+            "Tagore Garden Depot",
+            204,
+            36.27
+          ],
+          [
+            "Mayur Vihar Depot",
+            200,
+            33.5
+          ],
+          [
+            "Rohini Depot",
+            198,
+            28.79
+          ],
+          [
+            "Greater Noida Depot",
+            184,
+            23.91
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O1",
+      "category": "orders",
+      "question": "How many orders were cancelled today?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "cancelled_today"
+        ],
+        "rows": [
+          [
+            121
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O2",
+      "category": "orders",
+      "question": "What is the overall cancellation rate?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "cancelled",
+          "total_orders",
+          "cancellation_pct"
+        ],
+        "rows": [
+          [
+            152,
+            2564,
+            5.93
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O3",
+      "category": "orders",
+      "question": "How many orders are still being packed?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "packed_orders"
+        ],
+        "rows": [
+          [
+            612
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O4",
+      "category": "orders",
+      "question": "How many orders were created in the last hour?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "'Last hour' is counted back from as_of.",
+      "answer": {
+        "columns": [
+          "created_last_hour"
+        ],
+        "rows": [
+          [
+            446
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O5",
+      "category": "orders",
+      "question": "How many orders are currently in transit?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "in_transit_orders"
+        ],
+        "rows": [
+          [
+            170
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O6",
+      "category": "orders",
+      "question": "What is the current status of order 100?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Needs at least 100 orders in the evaluation run.",
+      "answer": {
+        "columns": [
+          "order_id",
+          "status"
+        ],
+        "rows": [
+          [
+            100,
+            "delivered"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "O7",
+      "category": "orders",
+      "question": "Which city has the highest cancellation rate?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "City = the CUSTOMER's city.",
+      "answer": {
+        "columns": [
+          "city",
+          "orders",
+          "cancelled",
+          "cancellation_pct"
+        ],
+        "rows": [
+          [
+            "New Delhi",
+            626,
+            45,
+            7.19
+          ],
+          [
+            "Noida",
+            451,
+            32,
+            7.1
+          ],
+          [
+            "Greater Noida",
+            474,
+            30,
+            6.33
+          ],
+          [
+            "Delhi",
+            532,
+            24,
+            4.51
+          ],
+          [
+            "Gurugram",
+            481,
+            21,
+            4.37
+          ]
+        ]
+      }
+    },
+    {
+      "id": "C1",
+      "category": "city",
+      "question": "Compare delivery performance across cities.",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "City = the DESTINATION hub's city.",
+      "answer": {
+        "columns": [
+          "city",
+          "deliveries",
+          "on_time_pct",
+          "late_pct",
+          "avg_delivery_minutes"
+        ],
+        "rows": [
+          [
+            "Delhi",
+            582,
+            33.68,
+            66.32,
+            111.22
+          ],
+          [
+            "Greater Noida",
+            184,
+            23.91,
+            76.09,
+            140.84
+          ],
+          [
+            "Gurugram",
+            179,
+            36.31,
+            63.69,
+            110.35
+          ],
+          [
+            "New Delhi",
+            395,
+            39.24,
+            60.76,
+            102.45
+          ],
+          [
+            "Noida",
+            180,
+            40.0,
+            60.0,
+            107.13
+          ]
+        ]
+      }
+    },
+    {
+      "id": "C2",
+      "category": "city",
+      "question": "Which city has the highest average delivery time?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "city",
+          "avg_delivery_minutes"
+        ],
+        "rows": [
+          [
+            "Greater Noida",
+            140.84
+          ],
+          [
+            "Delhi",
+            111.22
+          ],
+          [
+            "Gurugram",
+            110.35
+          ],
+          [
+            "Noida",
+            107.13
+          ],
+          [
+            "New Delhi",
+            102.45
+          ]
+        ]
+      }
+    },
+    {
+      "id": "V1",
+      "category": "vehicle",
+      "question": "Which vehicle has the most reported incidents?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "plate_no",
+          "incidents"
+        ],
+        "rows": [
+          [
+            "DL-13-RT-6198",
+            8
+          ],
+          [
+            "UP-02-HK-4680",
+            8
+          ],
+          [
+            "DL-03-AB-5011",
+            7
+          ],
+          [
+            "DL-12-KN-7118",
+            7
+          ],
+          [
+            "DL-12-NS-7547",
+            7
+          ],
+          [
+            "UP-14-HH-1387",
+            7
+          ],
+          [
+            "UP-14-YT-4258",
+            7
+          ],
+          [
+            "DL-03-VK-2395",
+            6
+          ],
+          [
+            "UP-05-FR-9900",
+            6
+          ],
+          [
+            "DL-08-RG-9375",
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "V2",
+      "category": "vehicle",
+      "question": "Which vehicles were assigned the most shipments?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "plate_no",
+          "shipments"
+        ],
+        "rows": [
+          [
+            "DL-07-DV-5033",
+            16
+          ],
+          [
+            "DL-04-MJ-6576",
+            15
+          ],
+          [
+            "DL-07-BG-7883",
+            15
+          ],
+          [
+            "HR-03-JR-5092",
+            15
+          ],
+          [
+            "DL-06-UP-7071",
+            14
+          ],
+          [
+            "DL-10-CP-9565",
+            14
+          ],
+          [
+            "DL-10-TP-9976",
+            14
+          ],
+          [
+            "DL-11-HJ-8206",
+            14
+          ],
+          [
+            "DL-01-MK-7389",
+            13
+          ],
+          [
+            "DL-03-SD-4571",
+            13
+          ]
+        ]
+      }
+    },
+    {
+      "id": "V3",
+      "category": "vehicle",
+      "question": "Which vehicles have the most delayed shipments?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "'Delayed' here means delivered late.",
+      "answer": {
+        "columns": [
+          "plate_no",
+          "late_shipments"
+        ],
+        "rows": [
+          [
+            "DL-10-TP-9976",
+            10
+          ],
+          [
+            "DL-04-MJ-6576",
+            9
+          ],
+          [
+            "DL-07-DV-5033",
+            9
+          ],
+          [
+            "DL-12-KX-2983",
+            9
+          ],
+          [
+            "DL-15-NV-1444",
+            9
+          ],
+          [
+            "HR-08-BY-2612",
+            9
+          ],
+          [
+            "UP-03-DN-1634",
+            9
+          ],
+          [
+            "DL-01-MK-7389",
+            8
+          ],
+          [
+            "DL-03-LP-5065",
+            8
+          ],
+          [
+            "DL-06-UP-7071",
+            8
+          ]
+        ]
+      }
+    },
+    {
+      "id": "V4",
+      "category": "incident",
+      "question": "What are the most common types of incident?",
+      "kind": "text",
+      "needs": "both",
+      "answer_text": null,
+      "note": "Descriptions are free text, so types are grouped by their wording.",
+      "answer": {
+        "columns": [
+          "incident_type",
+          "incidents"
+        ],
+        "rows": [
+          [
+            "flat tyre",
+            102
+          ],
+          [
+            "road closed",
+            84
+          ],
+          [
+            "breakdown",
+            82
+          ],
+          [
+            "engine failure",
+            73
+          ],
+          [
+            "waterlogging",
+            68
+          ]
+        ]
+      }
+    },
+    {
+      "id": "T1",
+      "category": "trend",
+      "question": "Has the late-delivery rate increased today compared with yesterday?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Answer is yes/no plus both rates. Today may be a partial day.",
+      "answer": {
+        "columns": [
+          "day",
+          "deliveries",
+          "late_deliveries",
+          "late_pct"
+        ],
+        "rows": [
+          [
+            "2026-11-14",
+            247,
+            161,
+            65.18
+          ],
+          [
+            "2026-11-15",
+            1273,
+            827,
+            64.96
+          ]
+        ]
+      }
+    },
+    {
+      "id": "T2",
+      "category": "trend",
+      "question": "How has the late-delivery rate changed day by day?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "Multi-day trend. Works best on a run that covers several days.",
+      "answer": {
+        "columns": [
+          "day",
+          "deliveries",
+          "late_pct"
+        ],
+        "rows": [
+          [
+            "2026-11-14",
+            247,
+            65.18
+          ],
+          [
+            "2026-11-15",
+            1273,
+            64.96
+          ]
+        ]
+      }
+    },
+    {
+      "id": "T3",
+      "category": "trend",
+      "question": "Are deliveries getting faster or slower: today vs yesterday?",
+      "kind": "numbers",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "",
+      "answer": {
+        "columns": [
+          "day",
+          "deliveries",
+          "avg_delivery_minutes"
+        ],
+        "rows": [
+          [
+            "2026-11-14",
+            247,
+            78.81
+          ],
+          [
+            "2026-11-15",
+            1273,
+            118.37
+          ]
+        ]
+      }
+    },
+    {
+      "id": "M1",
+      "category": "mixed",
+      "question": "Which hub has the most incidents, and what do those incident descriptions say?",
+      "kind": "text",
+      "needs": "both",
+      "answer_text": null,
+      "note": "Hub and count come from numbers; the description text is the other half of the answer.",
+      "answer": {
+        "columns": [
+          "hub",
+          "reported_at",
+          "description"
+        ],
+        "rows": [
+          [
+            "Greater Noida Depot",
+            "2026-11-14T17:14:19.797534+00:00",
+            "Vehicle UP-09-FT-2743 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T17:16:07.797534+00:00",
+            "UP-11-PL-7592 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T17:24:29.797534+00:00",
+            "Vehicle DL-05-PU-8973 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T17:32:15.797534+00:00",
+            "Engine failure on UP-03-RU-8007 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T17:36:47.797534+00:00",
+            "DL-04-NE-4505 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:00:51.955221+00:00",
+            "Engine failure on DL-06-MG-5374 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:06:12.955221+00:00",
+            "Road closed near Greater Noida Depot, DL-14-CU-3060 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:06:52.955221+00:00",
+            "Engine failure on DL-14-CU-3060 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:16:36.955221+00:00",
+            "DL-11-CY-1659 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:17:04.955221+00:00",
+            "DL-07-SC-1878 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:34:04.568587+00:00",
+            "Road closed near Greater Noida Depot, UP-02-HK-4680 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:38:03.568587+00:00",
+            "DL-06-MG-5374 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:42:15.568587+00:00",
+            "DL-07-JR-6977 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:43:26.568587+00:00",
+            "Road closed near Greater Noida Depot, UP-14-HC-5569 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T18:56:32.568587+00:00",
+            "Road closed near Greater Noida Depot, DL-05-NE-5915 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T19:12:25.568587+00:00",
+            "Waterlogging near Greater Noida Depot stopped DL-02-PM-7939; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T19:24:21.568587+00:00",
+            "HR-01-AC-4582 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T19:27:06.568587+00:00",
+            "Waterlogging near Greater Noida Depot stopped DL-10-YF-9751; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T19:54:28.305953+00:00",
+            "Road closed near Greater Noida Depot, UP-14-HC-5569 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T20:42:30.305953+00:00",
+            "Waterlogging near Greater Noida Depot stopped DL-07-VG-5173; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T20:49:03.305953+00:00",
+            "Vehicle DL-11-SU-3705 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T20:50:21.305953+00:00",
+            "Engine failure on UP-04-DG-6169 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T20:56:45.305953+00:00",
+            "Vehicle UP-14-YT-4258 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T21:05:38.305953+00:00",
+            "DL-09-YL-1207 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T21:15:44.305953+00:00",
+            "DL-08-RG-9375 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T21:20:52.305953+00:00",
+            "Vehicle DL-11-SU-3705 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T21:23:43.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-08-RG-9375 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T21:26:09.305953+00:00",
+            "Engine failure on UP-12-LP-9379 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T21:58:49.305953+00:00",
+            "UP-15-JG-6147 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:05:32.305953+00:00",
+            "Waterlogging near Greater Noida Depot stopped DL-07-SC-1878; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:15:32.305953+00:00",
+            "Road closed near Greater Noida Depot, UP-04-DG-6169 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:32:48.305953+00:00",
+            "Engine failure on DL-13-FK-2771 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:36:09.305953+00:00",
+            "Road closed near Greater Noida Depot, HR-01-AC-4582 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:42:00.305953+00:00",
+            "UP-01-SL-3979 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:49:13.305953+00:00",
+            "Engine failure on UP-14-HH-1387 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:49:17.305953+00:00",
+            "Vehicle UP-05-FR-9900 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:51:49.305953+00:00",
+            "Vehicle DL-13-AC-5820 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T22:59:43.305953+00:00",
+            "Road closed near Greater Noida Depot, HR-01-AC-4582 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T23:16:27.305953+00:00",
+            "Engine failure on DL-15-FS-8373 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T23:18:17.305953+00:00",
+            "UP-14-HC-5569 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T23:33:43.305953+00:00",
+            "Vehicle UP-14-HC-5569 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T23:35:20.305953+00:00",
+            "UP-01-SL-3979 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T23:46:16.305953+00:00",
+            "UP-03-KA-9751 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-14T23:54:15.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-08-RG-9375 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:10:50.305953+00:00",
+            "Engine failure on DL-11-PE-8564 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:17:57.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-01-JH-4657 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:20:08.305953+00:00",
+            "Vehicle UP-11-DK-9308 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:22:01.305953+00:00",
+            "Road closed near Greater Noida Depot, HR-01-AC-4582 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:29:04.305953+00:00",
+            "DL-10-YF-9751 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:29:23.305953+00:00",
+            "Vehicle DL-10-YF-9751 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:29:34.305953+00:00",
+            "Engine failure on DL-13-FK-2771 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:58:41.305953+00:00",
+            "UP-13-BR-9785 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T00:59:24.305953+00:00",
+            "Engine failure on DL-08-RG-9375 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:02:19.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-07-YR-3340 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:06:22.305953+00:00",
+            "Road closed near Greater Noida Depot, UP-14-HH-1387 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:08:54.305953+00:00",
+            "Waterlogging near Greater Noida Depot stopped UP-05-FR-9900; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:21:27.305953+00:00",
+            "DL-12-SJ-9595 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:26:01.305953+00:00",
+            "UP-14-HH-1387 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:26:26.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-02-HP-9004 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:27:48.305953+00:00",
+            "Vehicle DL-15-TR-2982 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:28:37.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-08-RG-9375 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:36:00.305953+00:00",
+            "Waterlogging near Greater Noida Depot stopped UP-09-XP-4470; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:45:36.305953+00:00",
+            "UP-01-DJ-3925 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:50:37.305953+00:00",
+            "Vehicle DL-04-GA-3496 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:51:58.305953+00:00",
+            "Road closed near Greater Noida Depot, HR-15-VA-7232 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T01:52:24.305953+00:00",
+            "Engine failure on DL-01-JH-4657 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T02:00:47.305953+00:00",
+            "DL-15-TR-2982 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T02:04:03.305953+00:00",
+            "Engine failure on UP-13-HY-5543 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T02:04:30.305953+00:00",
+            "UP-05-FR-9900 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T02:30:30.305953+00:00",
+            "Road closed near Greater Noida Depot, DL-14-FF-7755 is taking a longer route."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T02:36:23.305953+00:00",
+            "DL-09-TM-7971 has a flat tyre near Greater Noida Depot, delivery delayed."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T02:39:40.305953+00:00",
+            "Waterlogging near Greater Noida Depot stopped DL-10-CP-9565; rerouting."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T03:13:33.305953+00:00",
+            "Vehicle DL-04-UR-3296 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T03:22:24.305953+00:00",
+            "Vehicle DL-07-LN-3704 broke down near Greater Noida Depot, waiting for a tow."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T03:42:59.305953+00:00",
+            "Engine failure on DL-15-NV-1444 close to Greater Noida Depot; replacement driver called."
+          ],
+          [
+            "Greater Noida Depot",
+            "2026-11-15T03:51:45.305953+00:00",
+            "Road closed near Greater Noida Depot, UP-03-GL-2674 is taking a longer route."
+          ]
+        ]
+      }
+    },
+    {
+      "id": "M2",
+      "category": "mixed",
+      "question": "Why is one city performing worse than another?",
+      "kind": "text",
+      "needs": "both",
+      "answer_text": null,
+      "note": "Score on evidence: gives late rate and incident numbers per city and does NOT claim a cause the data cannot prove.",
+      "answer": {
+        "columns": [
+          "city",
+          "deliveries",
+          "late_pct",
+          "incidents"
+        ],
+        "rows": [
+          [
+            "Greater Noida",
+            184,
+            76.09,
+            76
+          ],
+          [
+            "Delhi",
+            582,
+            66.32,
+            153
+          ],
+          [
+            "Gurugram",
+            179,
+            63.69,
+            34
+          ],
+          [
+            "New Delhi",
+            395,
+            60.76,
+            95
+          ],
+          [
+            "Noida",
+            180,
+            60.0,
+            51
+          ]
+        ]
+      }
+    },
+    {
+      "id": "R1",
+      "category": "definition",
+      "question": "What counts as a late shipment?",
+      "kind": "definition",
+      "needs": "rag",
+      "answer_text": "A shipment is late if it has been delivered and its actual arrival is after its planned arrival. A shipment that has not arrived yet is not counted as late; if its planned arrival has passed it is 'currently delayed' instead.",
+      "note": ""
+    },
+    {
+      "id": "R2",
+      "category": "definition",
+      "question": "How is on-time delivery calculated?",
+      "kind": "definition",
+      "needs": "rag",
+      "answer_text": "On-time rate = on-time deliveries divided by delivered shipments, times 100. A shipment is on time if it was delivered at or before its planned arrival. Shipments that have not arrived are never on time and are not in the denominator.",
+      "note": ""
+    },
+    {
+      "id": "R3",
+      "category": "definition",
+      "question": "What does is_deleted mean?",
+      "kind": "definition",
+      "needs": "rag",
+      "answer_text": "A silver-layer flag set when the source row was deleted in PostgreSQL. Deleted rows are kept in silver but left out of gold.",
+      "note": ""
+    },
+    {
+      "id": "U1",
+      "category": "unanswerable",
+      "question": "How long do shipments spend at intermediate hubs?",
+      "kind": "unanswerable",
+      "needs": "none",
+      "answer_text": "Cannot be answered. Shipments go directly from origin to destination, so there are no intermediate hubs and no arrival events to measure hub dwell time.",
+      "note": "A good answer says the data does not support this. Inventing a number is wrong."
+    },
+    {
+      "id": "U2",
+      "category": "unanswerable",
+      "question": "Where is shipment 42 right now?",
+      "kind": "unanswerable",
+      "needs": "none",
+      "answer_text": "Cannot be answered. The data has no live truck location; hub ids on delayed events are not positions.",
+      "note": "Can say whether it is delivered or in transit, but not a location."
+    },
+    {
+      "id": "U3",
+      "category": "unanswerable",
+      "question": "What is the average delivery cost per order?",
+      "kind": "unanswerable",
+      "needs": "none",
+      "answer_text": "Cannot be answered. There is no cost or price data in the system.",
+      "note": ""
+    }
+  ]
+}
