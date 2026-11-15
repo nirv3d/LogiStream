@@ -5,6 +5,14 @@ Every question the agent is tested on lives here, with one SQL query that gets
 the correct answer straight from PostgreSQL (the source database, not the lake).
 Running this file writes ground_truth.json, which is later used to score the four
 setups (LLM alone, RAG only, MCP only, RAG + MCP).
+
+Run on Windows (like check_gold.py), from D:/LogiStream, after the FINAL clean
+simulator run has stopped and gold_batch.py has been rebuilt:
+
+    python eval/ground_truth.py
+
+Time-based questions ("today", "last hour") use the same as_of time as gold:
+the latest event time in the data, not the wall clock.
 """
 import json
 import os
@@ -50,7 +58,7 @@ QUESTIONS = []
 
 
 def q(qid, category, question, kind, needs, sql=None, text=None, note=""):
-    """kind: numbers | text | definition | unanswerable
+    """kind: numbers | text | definition | partial | unanswerable
        needs: which setup should be able to answer it: mcp | rag | both | none"""
     QUESTIONS.append(dict(id=qid, category=category, question=question, kind=kind,
                           needs=needs, sql=sql, answer_text=text, note=note))
@@ -290,11 +298,22 @@ q("R3", "definition", "What does is_deleted mean?", "definition", "rag",
 q("U1", "unanswerable", "How long do shipments spend at intermediate hubs?", "unanswerable", "none",
   text="Cannot be answered. Shipments go directly from origin to destination, so there are no intermediate hubs "
        "and no arrival events to measure hub dwell time.",
-  note="A good answer says the data does not support this. Inventing a number is wrong.")
+  note="A good answer says the data does not support this. Inventing a number is wrong. Offering origin hub processing time as the nearest measure is fine.")
 
-q("U2", "unanswerable", "Where is shipment 42 right now?", "unanswerable", "none",
-  text="Cannot be answered. The data has no live truck location; hub ids on delayed events are not positions.",
-  note="Can say whether it is delivered or in transit, but not a location.")
+q("P1", "partial", "Where is shipment 865 right now?", "partial", "mcp",
+  sql="""SELECT s.shipment_id, s.status AS shipment_status,
+                oh.name AS origin_hub, dh.name AS destination_hub,
+                s.planned_arrival, s.actual_arrival,
+                CASE WHEN s.actual_arrival IS NULL AND s.planned_arrival < %(as_of)s::timestamptz
+                     THEN round(extract(epoch FROM (%(as_of)s::timestamptz - s.planned_arrival)) / 60)::int
+                END AS delayed_minutes_now
+         FROM shipments s
+         JOIN orders o USING (order_id)
+         JOIN hubs oh ON oh.hub_id = o.origin_hub_id
+         JOIN hubs dh ON dh.hub_id = o.destination_hub_id
+         WHERE s.shipment_id = 865""",
+  note="PARTIAL answer expected: give status, origin and destination hub, planned arrival and how late it is, "
+       "and say there is no live position. Naming a place on the route is wrong.")
 
 q("U3", "unanswerable", "What is the average delivery cost per order?", "unanswerable", "none",
   text="Cannot be answered. There is no cost or price data in the system.")
