@@ -197,7 +197,7 @@ def city_performance() -> dict:
     """Delivery performance per city. The city is the DESTINATION hub's city.
     Columns: deliveries, on-time %, late %, average delivery minutes."""
     return _rows(
-        """SELECT destination_hub_city AS city,
+        """SELECT destination_city AS city,
                   count(*) FILTER (WHERE is_delivered) AS deliveries,
                   round(100.0 * count(*) FILTER (WHERE is_on_time)
                         / nullif(count(*) FILTER (WHERE is_delivered), 0), 2) AS on_time_pct,
