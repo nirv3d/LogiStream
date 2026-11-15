@@ -1,6 +1,6 @@
 {
   "as_of": "2026-11-15T03:53:01.305953+00:00",
-  "generated_at": "2026-11-15T04:27:03.382247Z",
+  "generated_at": "2026-11-15T06:22:20.446283Z",
   "questions": [
     {
       "id": "D1",
@@ -1784,16 +1784,38 @@
       "kind": "unanswerable",
       "needs": "none",
       "answer_text": "Cannot be answered. Shipments go directly from origin to destination, so there are no intermediate hubs and no arrival events to measure hub dwell time.",
-      "note": "A good answer says the data does not support this. Inventing a number is wrong."
+      "note": "A good answer says the data does not support this. Inventing a number is wrong. Offering origin hub processing time as the nearest measure is fine."
     },
     {
-      "id": "U2",
-      "category": "unanswerable",
-      "question": "Where is shipment 42 right now?",
-      "kind": "unanswerable",
-      "needs": "none",
-      "answer_text": "Cannot be answered. The data has no live truck location; hub ids on delayed events are not positions.",
-      "note": "Can say whether it is delivered or in transit, but not a location."
+      "id": "P1",
+      "category": "partial",
+      "question": "Where is shipment 865 right now?",
+      "kind": "partial",
+      "needs": "mcp",
+      "answer_text": null,
+      "note": "PARTIAL answer expected: give status, origin and destination hub, planned arrival and how late it is, and say there is no live position. Naming a place on the route is wrong.",
+      "answer": {
+        "columns": [
+          "shipment_id",
+          "shipment_status",
+          "origin_hub",
+          "destination_hub",
+          "planned_arrival",
+          "actual_arrival",
+          "delayed_minutes_now"
+        ],
+        "rows": [
+          [
+            865,
+            "in_transit",
+            "Rohini Depot",
+            "Noida Sector 62 Depot",
+            "2026-11-14T21:49:53.185006+00:00",
+            null,
+            363
+          ]
+        ]
+      }
     },
     {
       "id": "U3",
