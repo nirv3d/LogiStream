@@ -27,8 +27,13 @@ These definitions explain how every number in the gold layer is calculated. Use 
 - **Order statuses:** created, packed, in_transit, delivered, cancelled.
 - **Currently in transit:** orders whose status is `in_transit` right now.
 - **Cancelled at:** for a cancelled order, its last update time. Cancelled orders have no shipment because they are cancelled before shipping.
-- **Cancellation rate by city:** cancelled orders divided by all orders, grouped by the customer's city (`customer_city`). Delivery metrics use the destination hub's city (`destination_city`) instead.
 - **Order vs shipment:** an order is the customer's request. A shipment is the physical movement. Not every order has a shipment.
+
+## Cancellation rate by city
+
+- Cancellation rate by city is calculated using the customer's city (`customer_city`).
+- Formula: cancelled orders divided by all orders, grouped by customer city, multiplied by 100.
+- Do not use the destination hub's city (`destination_city`) for cancellation rate. Destination city is used for delivery metrics.
 
 ## Hubs (`agg_hub_daily`, one row per hub per day)
 
@@ -68,4 +73,12 @@ A hub can play three roles, and each role has its own columns:
 
 ## Not supported in this version
 
-- **Processing time at a hub the shipment only passes through** (arrival to departure): shipments go directly from origin to destination, and the data has no arrival event, so this cannot be measured.
+- **Intermediate hub dwell time:** The time a shipment spends at an intermediate hub between arrival and departure. Also called intermediate hub processing time or hub dwell time. This cannot be calculated because shipments travel directly from origin to destination. The data has no intermediate hub arrival or departure events.
+
+- **Live truck location:** Not supported. Shipment events record activity at origin and destination hubs, not continuous GPS coordinates. The current physical location of a truck cannot be determined.
+
+## Delivery cost
+
+- Average delivery cost per order is not supported.
+- The dataset contains no shipment costs, delivery charges, fuel costs, or monetary expense records.
+- Average delivery cost cannot be calculated from the available gold tables.

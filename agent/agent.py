@@ -1,249 +1,576 @@
 """
-agent.py - the LogiStream AI agent, with four setups that differ ONLY in what the
-model can access:
+agent.py - LogiStream AI agent powered by Groq.
 
-    llm    the model alone (no data, no documents)
-    rag    + the definitions document (retrieved chunks pasted into the question)
-    mcp    + the MCP tools (it can read the real data)
-    both   RAG and MCP together
+Setups:
+    llm  - Groq alone
+    rag  - Groq + retrieved business definitions
+    mcp  - Groq + MCP tools
+    both - Groq + RAG + MCP tools
 
-Same model, same instructions, same settings (temperature 0) in every setup, so
-differences in accuracy come from the setup and not from anything else.
+Environment variables:
+    GROQ_API_KEY
+    GROQ_MODEL
+    GROQ_TIMEOUT_SECONDS
+    MAX_TOOL_CHARS
 
-Put this at D:\\LogiStream\\agent\\agent.py
-Needs: Ollama running with the model pulled (ollama pull llama3.2:3b), and for
-the rag/both setups the index from rag_store.py (python rag\\rag_store.py build).
-
-Try it (from D:\\LogiStream):
-    python agent\\agent.py --setup mcp "How many orders are currently in transit?"
+Run from D:\\LogiStream:
+    python agent\\agent.py --setup llm "What is a logistics pipeline?"
+    python agent\\agent.py --setup mcp "How many orders are in transit?"
     python agent\\agent.py --setup both "What counts as a late shipment?"
-
-Settings can be changed with environment variables: AGENT_MODEL, NUM_CTX,
-MAX_TOOL_CHARS, OLLAMA_URL.
 """
+
 import argparse
 import asyncio
 import json
 import os
 import sys
 import time
-import urllib.error
-import urllib.request
 from contextlib import AsyncExitStack
 from pathlib import Path
+
+from dotenv import load_dotenv
+from groq import Groq
+
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVER = ROOT / "mcp" / "server.py"
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-MODEL = os.environ.get("AGENT_MODEL", "llama3.2:3b")
-NUM_CTX = int(os.environ.get("NUM_CTX", "8192"))          # how much text the model can hold
+# Load the project's .env file.
+load_dotenv(ROOT / ".env")
+
+MODEL = os.environ.get(
+    "GROQ_MODEL",
+    os.environ.get("AGENT_MODEL", "openai/gpt-oss-120b")
+)
+
+GROQ_TIMEOUT_SECONDS = int(
+    os.environ.get("GROQ_TIMEOUT_SECONDS", "120")
+)
+
 MAX_TOOL_CHARS = int(os.environ.get("MAX_TOOL_CHARS", "12000"))
-MAX_STEPS = 6                                              # model calls per question
+
+MAX_STEPS = 6
 SETUPS = ("llm", "rag", "mcp", "both")
 
+
+
 BASE_PROMPT = (
-    "You answer questions about a courier company's delivery data "
-    "(orders, shipments, hubs, vehicles and incidents in Delhi-NCR).\n"
-    "Rules:\n"
-    "- Never guess or invent numbers, names or facts.\n"
-    "- If you do not have what you need to answer (no matching tool result, nothing "
-    "in the provided context, or the data does not exist), say clearly that you "
-    "cannot answer and why.\n"
-    "- Keep answers short and in plain language, and include the actual numbers.\n"
-    "- For questions about today, now or the last hour, mention the as_of time from "
-    "the tool result."
+    "You are an AI assistant for a courier company's logistics data "
+    "system in Delhi-NCR. You answer questions about orders, shipments, "
+    "hubs, vehicles, deliveries and incidents.\n\n"
+
+    "GENERAL RULES:\n"
+    "- Never guess or invent numbers, names, dates, locations or facts.\n"
+    "- Only use information provided in the context or returned by tools.\n"
+    "- If you do not have enough information to answer, clearly explain "
+    "what is missing instead of making up an answer.\n"
+    "- If the required data does not exist in the system, explicitly say so.\n"
+    "- Keep answers concise, clear and in plain language.\n"
+    "- Include actual numbers and relevant comparisons when available.\n"
+    "- Do not claim that an operation or database query succeeded unless "
+    "a tool actually returned the result.\n\n"
+
+    "TIME AND DATE RULES:\n"
+    "- For questions about today, now, yesterday or the last hour, "
+    "use the timestamps and time boundaries provided by the tools.\n"
+    "- Mention the as_of timestamp returned by the tool when answering "
+    "time-sensitive questions.\n"
+    "- Do not manually guess or convert time zones. Only provide a "
+    "converted timestamp when the conversion is known to be correct.\n"
+    "- If today's data covers only part of the day, clearly mention "
+    "that it is a partial-day result.\n\n"
+
+    "SHIPMENT LOCATION RULES:\n"
+    "- The system does not have live GPS coordinates or live physical "
+    "locations for vehicles or shipments.\n"
+    "- Never infer a shipment's current physical location from its "
+    "origin hub, destination hub, route, shipment status or delay.\n"
+    "- Never say that a shipment is between two hubs, near a hub, "
+    "or at a particular location unless an actual location field "
+    "or GPS result explicitly confirms it.\n"
+    "- If asked where a shipment is right now, clearly explain that "
+    "its live physical location cannot be determined from the available data.\n"
+    "- You may still provide its shipment status, origin hub, destination "
+    "hub, planned arrival and current delay if those details are available.\n\n"
+
+    "DATA LIMITATIONS:\n"
+    "- Do not confuse a shipment being delayed with knowing its physical location.\n"
+    "- Do not confuse an incident description with an aggregated incident count.\n"
+    "- Do not calculate totals from a limited sample of records.\n"
+    "- If a tool returns sample records or truncated results, clearly "
+    "identify them as samples and do not present them as complete data.\n"
+    "- Do not claim that intermediate hub dwell time, delivery costs, "
+    "live GPS positions or other unavailable metrics exist.\n\n"
+
+    "ANSWERING STYLE:\n"
+    "- Answer the actual question directly.\n"
+    "- Use bullet points or small tables when they make comparisons easier.\n"
+    "- Distinguish between confirmed facts, estimates and unavailable information.\n"
+    "- Never hide uncertainty or present an assumption as a confirmed fact."
 )
+
+
+
 TOOLS_NOTE = (
     "\nYou have tools that read the company's data. Use a tool for every number, "
     "status or list: call it, read the result, then answer. Do not say you have no "
-    "access before you have tried the tools."
+    "access before you have tried the tools.\n"
+
+    "\nTOOL ROUTING RULES:\n"
+    "- For order counts, cancellations, or order status totals, use order_counts.\n"
+    "- For a specific order, use order_lookup.\n"
+    "- For shipment status or shipment details, use shipment_status.\n"
+    "- For currently delayed shipments, use currently_delayed_shipments.\n"
+    "- For delivery averages, late percentages, and on-time performance, "
+    "use delivery_summary.\n"
+    "- For hub comparisons or the hub with the most late shipments, "
+    "use hub_performance.\n"
+    "- For city comparisons, use city_performance.\n"
+    "- For daily changes and today-versus-yesterday trends, use daily_trends.\n"
+    "- For vehicle rankings, use vehicle_ranking.\n"
+    "- For incident counts grouped by hub, use incidents_by_hub.\n"
+
+    "\nINCIDENT TOOL RULES:\n"
+    "- For the most common incident types and their total counts, "
+    "use incident_type_summary.\n"
+    "- For descriptions of incidents at a hub, the EXACT tool name is "
+    "incident_descriptions. Spell it exactly as written.\n"
+    "- Never use incident_desinations or any other variation.\n"
+    "- If asked which hub has the most incidents AND what its descriptions say, "
+    "call incidents_by_hub first.\n"
+    "- Then call incident_descriptions with hub_name and limit=10.\n"
+    "- Treat the returned descriptions as samples, not all incidents.\n"
+
+    "\nIMPORTANT DATA LIMITATIONS:\n"
+    "- Do not invent missing data or guess values.\n"
+    "- Do not claim to know a shipment's live GPS location. "
+    "shipment_status does not provide live GPS tracking.\n"
+    "- Do not infer a shipment's exact current location from its origin "
+    "and destination hubs.\n"
+    "- If a question requires data that the tools do not contain, "
+    "clearly say that the data is unavailable.\n"
 )
+
+
 RAG_NOTE = (
     "\nThe business rules (definitions) for this data are given in the message under "
     "'Context'. Use them to explain terms and to read the question correctly."
 )
 
 
-# ------------------------------------------------------------ Ollama helpers
-def ollama_chat(model, messages, tools=None):
-    body = {
-        "model": model,
-        "messages": messages,
-        "stream": False,
-        "keep_alive": "30m",  # keep the model in memory between questions
-        "options": {"temperature": 0, "seed": 42, "num_ctx": NUM_CTX},
-    }
-    if tools:
-        body["tools"] = tools
-    req = urllib.request.Request(
-        OLLAMA_URL + "/api/chat", data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=900) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(
-            f"Ollama error {e.code}: {e.read().decode('utf-8', 'replace')}\n"
-            f"Is the model pulled?  ollama pull {model}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Cannot reach Ollama at {OLLAMA_URL}. Is the Ollama app running?") from e
+# ------------------------------------------------------------ Groq helpers
+
+def _simplify(value):
+    """
+    Simplify an MCP JSON schema for the model.
+
+    Removes unnecessary titles and simplifies nullable fields.
+    Recursively handles nested objects and arrays.
+    """
+    if isinstance(value, list):
+        return [_simplify(item) for item in value]
+
+    if not isinstance(value, dict):
+        return value
+
+    result = {}
+
+    for key, item in value.items():
+        if key in ("title", "$schema"):
+            continue
+
+        if key == "anyOf":
+            options = [
+                option for option in item
+                if not (
+                    isinstance(option, dict)
+                    and option.get("type") == "null"
+                )
+            ]
+
+            if len(options) == 1:
+                simplified = _simplify(options[0])
+                result.update(simplified)
+            else:
+                result[key] = _simplify(options)
+
+        else:
+            result[key] = _simplify(item)
+
+    return result
 
 
-def _simplify(prop):
-    """Make an MCP/pydantic JSON schema simple enough for Ollama (drop 'title',
-    turn 'anything or null' into just 'anything')."""
-    prop = dict(prop)
-    prop.pop("title", None)
-    if "anyOf" in prop:
-        options = [o for o in prop.pop("anyOf") if o.get("type") != "null"]
-        if options:
-            prop.update(_simplify(options[0]))
-    if isinstance(prop.get("items"), dict):
-        prop["items"] = _simplify(prop["items"])
-    return prop
+def to_groq_tools(mcp_tools):
+    """
+    Convert MCP tool definitions into Groq/OpenAI-compatible
+    function declarations.
 
+    Groq receives the tool names, descriptions and input schemas.
+    Python still executes the actual MCP tools.
+    """
+    declarations = []
 
-def to_ollama_tools(mcp_tools):
-    out = []
-    for t in mcp_tools:
-        schema = t.inputSchema or {}
-        out.append({
+    for tool in mcp_tools:
+        schema = _simplify(tool.inputSchema or {
+            "type": "object",
+            "properties": {}
+        })
+
+        declarations.append({
             "type": "function",
             "function": {
-                "name": t.name,
-                "description": t.description or "",
-                "parameters": {
-                    "type": "object",
-                    "properties": {k: _simplify(v) for k, v in schema.get("properties", {}).items()},
-                    "required": schema.get("required", []),
-                },
-            },
+                "name": tool.name,
+                "description": tool.description or "",
+                "parameters": schema,
+            }
         })
-    return out
+
+    return declarations or None
 
 
 def _compact(text):
-    """Shrink JSON tool output (fewer tokens = faster on a CPU)."""
+    """Reduce the size of JSON tool output."""
     try:
-        return json.dumps(json.loads(text), separators=(",", ":"), ensure_ascii=False)
+        return json.dumps(
+            json.loads(text),
+            separators=(",", ":"),
+            ensure_ascii=False
+        )
     except Exception:
         return text
 
 
-# --------------------------------------------------------------------- agent
+def _response_tokens(response, field):
+    """Safely read token counts from Groq usage metadata."""
+    usage = getattr(response, "usage", None)
+    return getattr(usage, field, 0) or 0
+
+
+# ------------------------------------------------------------------ Agent
+
 class Agent:
+
     def __init__(self, setup, model=MODEL, sql_tool=False):
+
         if setup not in SETUPS:
             raise ValueError(f"setup must be one of {SETUPS}")
-        self.setup, self.model, self.sql_tool = setup, model, sql_tool
+
+        self.setup = setup
+        self.model = model
+        self.sql_tool = sql_tool
+
         self.use_rag = setup in ("rag", "both")
         self.use_mcp = setup in ("mcp", "both")
-        self.session, self.tools, self._stack = None, [], None
-        self.system = BASE_PROMPT + (TOOLS_NOTE if self.use_mcp else "") + (RAG_NOTE if self.use_rag else "")
+
+        self.session = None
+        self.tools = []
+        self.groq_tools = None
+        self._stack = None
+
+        self.system = (
+            BASE_PROMPT
+            + (TOOLS_NOTE if self.use_mcp else "")
+            + (RAG_NOTE if self.use_rag else "")
+        )
+
+        # Create Groq client.
+        api_key = os.environ.get("GROQ_API_KEY")
+
+        if not api_key:
+            raise ValueError(
+                "GROQ_API_KEY not found. Check the .env file in D:\\LogiStream."
+            )
+
+        self.client = Groq(
+            api_key=api_key,
+            timeout=GROQ_TIMEOUT_SECONDS,
+            max_retries=2,
+        )
+
+        # Load RAG only when this setup needs it.
         if self.use_rag:
             sys.path.insert(0, str(ROOT / "rag"))
-            import rag_store  # noqa: E402
+            import rag_store
             self.rag = rag_store
 
     async def __aenter__(self):
+
         self._stack = AsyncExitStack()
+
         if self.use_mcp:
+
             from mcp import ClientSession, StdioServerParameters
             from mcp.client.stdio import stdio_client
+
             env = dict(os.environ)
             env["LOGISTREAM_SQL_TOOL"] = "1" if self.sql_tool else "0"
-            params = StdioServerParameters(command=sys.executable, args=[str(SERVER)], env=env)
-            read, write = await self._stack.enter_async_context(stdio_client(params))
-            self.session = await self._stack.enter_async_context(ClientSession(read, write))
+
+            params = StdioServerParameters(
+                command=sys.executable,
+                args=[str(SERVER)],
+                env=env
+            )
+
+            read, write = await self._stack.enter_async_context(
+                stdio_client(params)
+            )
+
+            self.session = await self._stack.enter_async_context(
+                ClientSession(read, write)
+            )
+
             await self.session.initialize()
-            self.tools = to_ollama_tools((await self.session.list_tools()).tools)
+
+            # Get available tools from the MCP server.
+            mcp_tools = (await self.session.list_tools()).tools
+
+            # Convert them into Groq-compatible function declarations.
+            self.groq_tools = to_groq_tools(mcp_tools)
+
         return self
 
     async def __aexit__(self, *exc):
         await self._stack.aclose()
 
     async def _call_tool(self, name, args):
+        """
+        Execute the MCP tool requested by Groq.
+
+        Groq only suggests the function call.
+        This method actually executes it through the MCP session.
+        """
+
         if self.session is None:
             return f"Tool error: no tool called {name} is available.", False
+
         if isinstance(args, str):
             try:
                 args = json.loads(args)
             except Exception:
                 args = {}
+
         try:
-            res = await self.session.call_tool(name, args)
-            text = "\n".join(c.text for c in res.content if getattr(c, "text", None))
-            ok = not res.isError
-        except Exception as e:  # the model sees the error and can try again
-            text, ok = f"Tool error: {e}", False
+            result = await self.session.call_tool(name, args)
+
+            text = "\n".join(
+                content.text
+                for content in result.content
+                if getattr(content, "text", None)
+            )
+
+            ok = not result.isError
+
+        except Exception as e:
+            text = f"Tool error: {e}"
+            ok = False
+
         text = _compact(text)
+
         if len(text) > MAX_TOOL_CHARS:
             text = text[:MAX_TOOL_CHARS] + "...[cut: result too long]"
+
         return text, ok
 
     async def ask(self, question):
+
         t0 = time.time()
-        r = {"setup": self.setup, "model": self.model, "question": question,
-             "answer": "", "finished": False, "steps": 0, "tool_calls": [],
-             "rag_sections": [], "prompt_tokens": 0, "gen_tokens": 0,
-             "seconds": 0.0, "error": None}
+
+        result = {
+            "setup": self.setup,
+            "model": self.model,
+            "question": question,
+            "answer": "",
+            "finished": False,
+            "steps": 0,
+            "tool_calls": [],
+            "rag_sections": [],
+            "prompt_tokens": 0,
+            "gen_tokens": 0,
+            "seconds": 0.0,
+            "error": None
+        }
+
         try:
+
+            # ------------------------------------------- RAG retrieval
+
             user = question
+
             if self.use_rag:
-                chunks = await asyncio.to_thread(self.rag.search, question)
-                r["rag_sections"] = [c["section"] for c in chunks]
-                user = f"Context (business rules):\n{self.rag.format_context(chunks)}\n\nQuestion: {question}"
-            messages = [{"role": "system", "content": self.system},
-                        {"role": "user", "content": user}]
+
+                chunks = await asyncio.to_thread(
+                    self.rag.search,
+                    question
+                )
+
+                result["rag_sections"] = [
+                    chunk["section"] for chunk in chunks
+                ]
+
+                user = (
+                    f"Context (business rules):\n"
+                    f"{self.rag.format_context(chunks)}\n\n"
+                    f"Question: {question}"
+                )
+
+            # Groq conversation history.
+            messages = [
+                {
+                    "role": "system",
+                    "content": self.system
+                },
+                {
+                    "role": "user",
+                    "content": user
+                }
+            ]
+
+            # ------------------------------------------- Groq loop
 
             for _ in range(MAX_STEPS):
-                resp = await asyncio.to_thread(ollama_chat, self.model, messages, self.tools or None)
-                r["steps"] += 1
-                r["prompt_tokens"] += resp.get("prompt_eval_count", 0)
-                r["gen_tokens"] += resp.get("eval_count", 0)
-                msg = resp["message"]
-                messages.append(msg)
-                calls = msg.get("tool_calls") or []
-                if not calls:
-                    r["answer"] = (msg.get("content") or "").strip()
-                    r["finished"] = True
+
+                # Send the conversation to Groq.
+                request = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0,
+                }
+
+                if self.groq_tools:
+                    request["tools"] = self.groq_tools
+                    request["tool_choice"] = "auto"
+
+                response = await asyncio.to_thread(
+                    self.client.chat.completions.create,
+                    **request
+                )
+
+                result["steps"] += 1
+
+                result["prompt_tokens"] += _response_tokens(
+                    response,
+                    "prompt_tokens"
+                )
+
+                result["gen_tokens"] += _response_tokens(
+                    response,
+                    "completion_tokens"
+                )
+
+                if not response.choices:
+                    raise RuntimeError(
+                        "Groq returned no response choices."
+                    )
+
+                message = response.choices[0].message
+
+                # Add Groq's response to conversation history.
+                messages.append(message.model_dump(exclude_none=True))
+
+                # --------------------------------------- No tool call
+
+                tool_calls = message.tool_calls or []
+
+                if not tool_calls:
+
+                    result["answer"] = (message.content or "").strip()
+                    result["finished"] = True
                     break
-                for call in calls:
-                    fn = call["function"]
-                    name, args = fn["name"], fn.get("arguments") or {}
+
+                # --------------------------------------- Execute tools
+
+                for call in tool_calls:
+
+                    name = call.function.name
+                    raw_args = call.function.arguments or "{}"
+
+                    try:
+                        args = json.loads(raw_args)
+                    except Exception:
+                        args = {}
+
+                    # Execute the actual MCP tool.
                     text, ok = await self._call_tool(name, args)
-                    r["tool_calls"].append({"name": name, "arguments": args, "ok": ok, "chars": len(text)})
-                    messages.append({"role": "tool", "tool_name": name, "content": text})
-            if not r["finished"]:
-                r["answer"] = "(no final answer: step limit reached)"
+
+                    result["tool_calls"].append({
+                        "name": name,
+                        "arguments": args,
+                        "ok": ok,
+                        "chars": len(text)
+                    })
+
+                    # Send the tool result back to Groq.
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": call.id,
+                        "content": text
+                    })
+
+            if not result["finished"]:
+                result["answer"] = "(no final answer: step limit reached)"
+
         except Exception as e:
-            r["error"] = f"{type(e).__name__}: {e}"
-        r["seconds"] = round(time.time() - t0, 1)
-        return r
+
+            result["error"] = f"{type(e).__name__}: {e}"
+
+        result["seconds"] = round(time.time() - t0, 1)
+
+        return result
 
 
-# ----------------------------------------------------------------------- CLI
+# --------------------------------------------------------------------- CLI
+
 async def _main():
-    ap = argparse.ArgumentParser(description="Ask the LogiStream agent one question.")
-    ap.add_argument("question", nargs="+")
-    ap.add_argument("--setup", choices=SETUPS, default="both")
-    ap.add_argument("--model", default=MODEL)
-    ap.add_argument("--sql", action="store_true", help="also give the model the free-form run_sql tool")
-    a = ap.parse_args()
 
-    async with Agent(a.setup, a.model, a.sql) as agent:
-        r = await agent.ask(" ".join(a.question))
+    parser = argparse.ArgumentParser(
+        description="Ask the LogiStream Groq agent one question."
+    )
 
-    print(f"\nANSWER:\n{r['answer']}\n")
-    print(f"setup={r['setup']}  model={r['model']}  {r['seconds']}s  "
-          f"model calls={r['steps']}  tokens read/written={r['prompt_tokens']}/{r['gen_tokens']}")
-    for c in r["tool_calls"]:
-        print(f"  tool: {c['name']}({json.dumps(c['arguments'])})  ok={c['ok']}  {c['chars']} chars")
-    if r["rag_sections"]:
-        print("  RAG sections:", " | ".join(s.split(" > ")[-1] for s in r["rag_sections"]))
-    if r["error"]:
-        print("  ERROR:", r["error"])
+    parser.add_argument("question", nargs="+")
+    parser.add_argument("--setup", choices=SETUPS, default="both")
+    parser.add_argument("--model", default=MODEL)
+
+    parser.add_argument(
+        "--sql",
+        action="store_true",
+        help="also give the model the free-form run_sql tool"
+    )
+
+    args = parser.parse_args()
+
+    async with Agent(args.setup, args.model, args.sql) as agent:
+        result = await agent.ask(" ".join(args.question))
+
+    print(f"\nANSWER:\n{result['answer']}\n")
+
+    print(
+        f"setup={result['setup']}  "
+        f"model={result['model']}  "
+        f"{result['seconds']}s  "
+        f"model calls={result['steps']}  "
+        f"tokens read/written="
+        f"{result['prompt_tokens']}/{result['gen_tokens']}"
+    )
+
+    for call in result["tool_calls"]:
+        print(
+            f"  tool: {call['name']}("
+            f"{json.dumps(call['arguments'])})  "
+            f"ok={call['ok']}  "
+            f"{call['chars']} chars"
+        )
+
+    if result["rag_sections"]:
+        print(
+            "  RAG sections:",
+            " | ".join(
+                section.split(" > ")[-1]
+                for section in result["rag_sections"]
+            )
+        )
+
+    if result["error"]:
+        print("  ERROR:", result["error"])
 
 
 if __name__ == "__main__":

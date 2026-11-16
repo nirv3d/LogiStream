@@ -1,4 +1,4 @@
-"""
+""""
 ground_truth.py - the ANSWER KEY for the LogiStream AI agent evaluation.
 
 Every question the agent is tested on lives here, with one SQL query that gets

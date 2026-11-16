@@ -268,9 +268,7 @@ async def run(args):
                       f"tools={len(r['tool_calls'])}  {mark:<6} (about {fmt(eta)} left)")
                 if r["error"]:
                     print("        ", r["error"][:300])
-                    if "Cannot reach Ollama" in r["error"]:
-                        print("Stopping: start the Ollama app and run the same command again.")
-                        return
+            
     print(f"\nFinished {n_done} runs in {fmt(time.time() - t_start)}. Next:  python eval\\run_eval.py report")
 
 
@@ -369,7 +367,7 @@ def main():
     p.add_argument("--only", help="comma list of question ids, e.g. D1,O5")
     p.add_argument("--sample", action="store_true", help="first question of each category")
     p.add_argument("--limit", type=int, help="only the first N questions")
-    p.add_argument("--model", help="Ollama model (default: AGENT_MODEL or llama3.2:3b)")
+    p.add_argument("--model", help="Gemini model (default: GEMINI_MODEL)")
     p.add_argument("--sql", action="store_true", help="give the mcp/both setups the free-form run_sql tool")
     p.add_argument("--redo", action="store_true", help="run again even if already saved (the newest run counts in the report)")
     sub.add_parser("report", help="score what is saved and write results.csv")

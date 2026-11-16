@@ -1,4 +1,4 @@
-"""
+""""
 rag_store.py - RAG over docs\\gold_definitions.md (the business rules document).
 
 What it does:

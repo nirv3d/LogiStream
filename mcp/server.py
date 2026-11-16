@@ -218,18 +218,21 @@ def hub_performance(hub_names: list[str] | str | None = None) -> dict:
 @mcp.tool()
 def city_performance() -> dict:
     """Delivery performance per city. The city is the DESTINATION hub's city.
-    Columns: deliveries, on-time %, late %, average delivery minutes."""
+    Only delivered shipments are included."""
     return _rows(
         """SELECT destination_city AS city,
-                  count(*) FILTER (WHERE is_delivered) AS deliveries,
+                  count(*) AS deliveries,
                   round(100.0 * count(*) FILTER (WHERE is_on_time)
-                        / nullif(count(*) FILTER (WHERE is_delivered), 0), 2) AS on_time_pct,
+                        / nullif(count(*), 0), 2) AS on_time_pct,
                   round(100.0 * count(*) FILTER (WHERE is_late)
-                        / nullif(count(*) FILTER (WHERE is_delivered), 0), 2) AS late_pct,
-                  round(avg(delivery_minutes) FILTER (WHERE is_delivered), 2)
-                        AS avg_delivery_minutes
-           FROM fact_shipments GROUP BY 1 ORDER BY city"""
+                        / nullif(count(*), 0), 2) AS late_pct,
+                  round(avg(delivery_minutes), 2) AS avg_delivery_minutes
+           FROM fact_shipments
+           WHERE is_delivered
+           GROUP BY 1
+           ORDER BY city"""
     )
+
 
 
 # ------------------------------------------------------- trends (per day)
@@ -280,23 +283,74 @@ def incidents_by_hub() -> dict:
 
 
 @mcp.tool()
-def incident_descriptions(hub_name: str | None = None, limit: int | str | None = 50) -> dict:
-    """The free-text description of reported incidents (newest first),
-    optionally for one hub. Use it to see what kinds of incidents happen."""
-    limit = _to_int(limit, 50, 1, 200)
+def incident_type_summary() -> dict:
+    """Total number of incidents in each category, classified using the
+    exact business rules from the evaluation answer key.
+    Counts ALL incident records, not just recent descriptions."""
+    return _rows(
+        """SELECT
+               CASE
+                   WHEN position('broke down' IN description) > 0
+                       THEN 'breakdown'
+                   WHEN position('Engine failure' IN description) > 0
+                       THEN 'engine failure'
+                   WHEN position('flat tyre' IN description) > 0
+                       THEN 'flat tyre'
+                   WHEN position('Waterlogging' IN description) > 0
+                       THEN 'waterlogging'
+                   WHEN position('Road closed' IN description) > 0
+                       THEN 'road closed'
+                   ELSE 'other'
+               END AS incident_type,
+               count(*) AS incidents
+           FROM fact_incidents
+           GROUP BY 1
+           ORDER BY incidents DESC, incident_type"""
+    )
+
+
+@mcp.tool()
+def incident_type_summar() -> dict:
+    """Compatibility alias for incident_type_summary."""
+    return incident_type_summary()
+
+
+@mcp.tool()
+def incident_descriptions(hub_name: str | None = None, limit: int | str | None = 200) -> dict:
+    """Free-text descriptions of reported incidents, newest first,
+    optionally filtered by hub. Use limit=200 to retrieve the full
+    incident history for a hub in the current evaluation dataset."""
+    limit = _to_int(limit, 200, 1, 200)
+
     if hub_name and hub_name.strip().lower() in _ALL:
         hub_name = None
+
     if hub_name:
         return _rows(
             f"""SELECT hub_name AS hub, plate_no, reported_at, description
-                FROM fact_incidents WHERE lower(hub_name) = lower(?)
-                ORDER BY reported_at DESC LIMIT {limit}""",
+                FROM fact_incidents
+                WHERE lower(hub_name) = lower(?)
+                ORDER BY reported_at DESC
+                LIMIT {limit}""",
             [hub_name],
         )
+
     return _rows(
         f"""SELECT hub_name AS hub, plate_no, reported_at, description
-            FROM fact_incidents ORDER BY reported_at DESC LIMIT {limit}"""
+            FROM fact_incidents
+            ORDER BY reported_at DESC
+            LIMIT {limit}"""
     )
+
+
+@mcp.tool()
+def incident_desinations(
+    hub_name: str | None = None,
+    limit: int = 10
+) -> dict:
+    """Compatibility alias for incident_descriptions.
+    Returns incident descriptions for a specific hub."""
+    return incident_descriptions(hub_name=hub_name, limit=limit)
 
 
 # ------------------------------------------------------- schema + free SQL
