@@ -37,6 +37,19 @@ def _rows(sql, params=None, max_rows=200, note=None):
     return out
 
 
+def _to_int(value, default, lo, hi):
+    """Small models sometimes send 'null', '' or '10' instead of a number. Accept
+    anything that looks like a whole number, otherwise use the default."""
+    try:
+        return max(lo, min(int(str(value).strip()), hi))
+    except (TypeError, ValueError):
+        return default
+
+
+# Words a model may send when it means "no filter / everything".
+_ALL = {"", "all", "any", "none", "null", "*"}
+
+
 # ------------------------------------------------------------------ orders
 @mcp.tool()
 def order_lookup(order_id: int) -> dict:
@@ -143,18 +156,22 @@ def delivery_summary() -> dict:
 
 # -------------------------------------------------------------------- hubs
 @mcp.tool()
-def hub_performance(hub_names: list[str] | None = None) -> dict:
-    """Performance of each hub (or only the named hubs, e.g. to compare two).
+def hub_performance(hub_names: list[str] | str | None = None) -> dict:
+    """Performance of each hub. Leave hub_names empty for ALL hubs, or pass the
+    exact hub names to compare only some of them.
     Columns: deliveries and late deliveries and on-time % (attributed to the
     DESTINATION hub), average delay of late deliveries, average hub processing
     minutes (ORIGIN hub: order created to dispatch), incidents, and shipments
     passed through (as origin or destination). Time spent at intermediate hubs
     is NOT available."""
+    if isinstance(hub_names, str):
+        hub_names = hub_names.split(",")
+    names = [h.strip() for h in (hub_names or []) if str(h).strip().lower() not in _ALL]
     where, params = "", []
-    if hub_names:
-        where = "WHERE lower(dest.hub) IN (" + ",".join("?" * len(hub_names)) + ")"
-        params = [h.lower() for h in hub_names]
-    return _rows(
+    if names:
+        where = "WHERE lower(dest.hub) IN (" + ",".join("?" * len(names)) + ")"
+        params = [h.lower() for h in names]
+    res = _rows(
         f"""WITH dest AS (
                 SELECT destination_hub_name AS hub,
                        count(*) FILTER (WHERE is_delivered) AS deliveries,
@@ -189,6 +206,12 @@ def hub_performance(hub_names: list[str] | None = None) -> dict:
             ORDER BY dest.late_deliveries DESC, dest.hub""",
         params,
     )
+    if names and not res["rows"]:
+        valid = [r["hub"] for r in _rows(
+            "SELECT DISTINCT destination_hub_name AS hub FROM fact_shipments ORDER BY 1")["rows"]]
+        raise ValueError(f"No hub matched {names}. Valid hub names: {valid}. "
+                         "Leave hub_names empty to get all hubs.")
+    return res
 
 
 # ------------------------------------------------------------------ cities
@@ -227,7 +250,7 @@ def daily_trends() -> dict:
 
 # ---------------------------------------------------- vehicles & incidents
 @mcp.tool()
-def vehicle_ranking(metric: str = "incidents", top_n: int = 10) -> dict:
+def vehicle_ranking(metric: str = "incidents", top_n: int | str | None = 10) -> dict:
     """Top vehicles by plate number. metric is one of: 'incidents' (reported
     incidents), 'shipments' (shipments assigned) or 'late_shipments'
     (shipments delivered late)."""
@@ -239,7 +262,7 @@ def vehicle_ranking(metric: str = "incidents", top_n: int = 10) -> dict:
     if metric not in sources:
         raise ValueError("metric must be incidents, shipments or late_shipments")
     table, where, name = sources[metric]
-    top_n = max(1, min(int(top_n), 50))
+    top_n = _to_int(top_n, 10, 1, 50)
     return _rows(
         f"""SELECT plate_no, count(*) AS {name} FROM {table} {where}
             GROUP BY plate_no ORDER BY {name} DESC, plate_no LIMIT {top_n}"""
@@ -257,10 +280,12 @@ def incidents_by_hub() -> dict:
 
 
 @mcp.tool()
-def incident_descriptions(hub_name: str | None = None, limit: int = 50) -> dict:
+def incident_descriptions(hub_name: str | None = None, limit: int | str | None = 50) -> dict:
     """The free-text description of reported incidents (newest first),
     optionally for one hub. Use it to see what kinds of incidents happen."""
-    limit = max(1, min(int(limit), 200))
+    limit = _to_int(limit, 50, 1, 200)
+    if hub_name and hub_name.strip().lower() in _ALL:
+        hub_name = None
     if hub_name:
         return _rows(
             f"""SELECT hub_name AS hub, plate_no, reported_at, description

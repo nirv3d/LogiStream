@@ -4,3 +4,4 @@ __pycache__/
 lake/
 models/
 rag/chroma_db
+.env
