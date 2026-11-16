@@ -3,3 +3,4 @@ data/
 __pycache__/
 lake/
 models/
+rag/chroma_db
