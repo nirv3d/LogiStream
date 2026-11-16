@@ -7,6 +7,10 @@ What it does:
   search  turn a question into numbers the same way and return the closest chunks
   test    run the definition questions and show which chunks come back
 
+Usage (from D:\\LogiStream):
+  python rag\\rag_store.py build
+  python rag\\rag_store.py search "What counts as a late shipment?"
+  python rag\\rag_store.py test
 """
 import json
 import os
@@ -27,7 +31,7 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
 COLLECTION = "gold_definitions"
 MAX_CHARS = 1200  # about 300 tokens per chunk
-TOP_K = 5  # how many chunks to return
+TOP_K = 5         # how many chunks a search returns
 
 
 # ------------------------------------------------------------- 1. chunking
@@ -166,7 +170,7 @@ def test():
     ]
     for qid, question in questions:
         print(f"\n[{qid}] {question}")
-        for rank, r in enumerate(search(question, 3), 1):
+        for rank, r in enumerate(search(question), 1):
             first = r["text"].split("\n", 1)[1].replace("\n", " ")[:110]
             print(f"   {rank}. dist={r['distance']:.3f}  {r['section']}")
             print(f"      {first}")
@@ -178,7 +182,7 @@ if __name__ == "__main__":
     if cmd == "build":
         build()
     elif cmd == "search" and len(sys.argv) > 2:
-        for r in search(" ".join(sys.argv[2:]), 3):
+        for r in search(" ".join(sys.argv[2:])):
             print(f"\n--- dist={r['distance']:.3f}  {r['section']}\n{r['text']}")
     elif cmd == "test":
         test()
