@@ -224,6 +224,24 @@ def to_groq_tools(mcp_tools):
                 "parameters": schema,
             }
         })
+    # Compatibility alias for a common Qwen tool-name typo.
+    delivery_tool = next(
+        (
+            item for item in declarations
+            if item["function"]["name"] == "delivery_summary"
+        ),
+        None
+    )
+
+    if delivery_tool:
+        alias = json.loads(json.dumps(delivery_tool))
+        alias["function"]["name"] = "delivery_summar"
+        alias["function"]["description"] = (
+            "Compatibility alias for delivery_summary. "
+            "Use this for delivery averages, late percentages, "
+            "and on-time performance."
+        )
+        declarations.append(alias)
 
     return declarations or None
 
@@ -342,6 +360,9 @@ class Agent:
 
         if self.session is None:
             return f"Tool error: no tool called {name} is available.", False
+        # Map model-generated aliases to actual MCP tool names.
+        if name == "delivery_summar":
+            name = "delivery_summary"
 
         if isinstance(args, str):
             try:
