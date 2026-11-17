@@ -1,9 +1,9 @@
 
 """
-LogiStream - Delhi-NCR Logistics Control Tower
+LogiStream - Logistics Intelligence Dashboard
 
-Reads Gold Delta tables through the same DuckDB layer used by the MCP server.
-The dashboard does not call the LLM, so it works without Ollama or a Groq API key.
+Overview page.
+Data: Gold Delta tables through DuckDB.
 """
 
 import sys
@@ -16,20 +16,126 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "mcp"))
 
-from gold_db import connect, run_query  # noqa: E402
+from gold_db import connect, run_query
 
 
-# ---------------------------------------------------------- PAGE CONFIG
+# ----------------------------------------------------------
+# PAGE CONFIG
+# ----------------------------------------------------------
 
 st.set_page_config(
-    page_title="LogiStream | Control Tower",
+    page_title="LogiStream | Overview",
     page_icon="📦",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 
-# ---------------------------------------------------------- DATA ACCESS
+# ----------------------------------------------------------
+# STYLING
+# ----------------------------------------------------------
+
+
+
+st.markdown("""
+<style>
+    /* Main application background */
+    .stApp {
+        background-color: #0F172A;
+        color: #E2E8F0;
+    }
+
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 1500px;
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #020617;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #CBD5E1;
+    }
+
+    /* Main headings */
+    h1, h2, h3 {
+        color: #F1F5F9 !important;
+    }
+
+    p, label, .stMarkdown {
+        color: #CBD5E1;
+    }
+
+    /* KPI cards */
+    [data-testid="stMetric"] {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        padding: 18px 20px;
+        border-radius: 12px;
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: #94A3B8 !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: #60A5FA !important;
+        font-weight: 700;
+    }
+
+    /* Chart containers */
+    [data-testid="stPlotlyChart"] {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 8px;
+    }
+
+    /* DataFrames */
+    [data-testid="stDataFrame"] {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 10px;
+    }
+
+    /* Captions */
+    .section-caption {
+        color: #94A3B8;
+        font-size: 0.9rem;
+        margin-top: -10px;
+        margin-bottom: 15px;
+    }
+
+    /* Dividers */
+    hr {
+        border-color: #334155;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        background-color: #2563EB;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+    }
+
+    .stButton > button:hover {
+        background-color: #1D4ED8;
+        color: #FFFFFF;
+        border: none;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+
+
+# ----------------------------------------------------------
+# DATA ACCESS
+# ----------------------------------------------------------
 
 @st.cache_resource
 def get_con():
@@ -38,7 +144,7 @@ def get_con():
 
 @st.cache_data(ttl=60, show_spinner=False)
 def query(sql):
-    """Run a read-only query and return (DataFrame, as_of)."""
+    """Run a read-only query and return DataFrame and as_of."""
     res = run_query(get_con(), sql, max_rows=5000)
 
     return (
@@ -48,7 +154,6 @@ def query(sql):
 
 
 def format_number(value, suffix=""):
-    """Safely format numbers, including missing values."""
     if pd.isna(value):
         return "N/A"
 
@@ -58,51 +163,101 @@ def format_number(value, suffix=""):
     return f"{int(value):,}{suffix}"
 
 
-def show_empty_message(df, message="No data available for this section."):
+def show_empty_message(df, message="No data available."):
     if df.empty:
         st.info(message)
         return True
-
     return False
 
 
-# ---------------------------------------------------------- SIDEBAR
+def style_chart(fig, height=340):
+    """Apply consistent dark styling to Plotly charts."""
+    fig.update_layout(
+        template="plotly_dark",
+        height=height,
+        margin=dict(l=15, r=15, t=25, b=15),
+        font=dict(
+            family="Arial",
+            color="#E2E8F0",
+            size=12,
+        ),
+        paper_bgcolor="#1E293B",
+        plot_bgcolor="#1E293B",
+        hoverlabel=dict(
+            bgcolor="#0F172A",
+            font_color="#E2E8F0",
+            font_size=12,
+        ),
+    )
+
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="#334155",
+        zeroline=False,
+        color="#94A3B8",
+    )
+
+    fig.update_yaxes(
+        showgrid=False,
+        zeroline=False,
+        color="#94A3B8",
+    )
+
+    return fig
+
+
+# ----------------------------------------------------------
+# SIDEBAR
+# ----------------------------------------------------------
 
 with st.sidebar:
-    st.title("📦 LogiStream")
 
-    st.caption("DELHI-NCR LOGISTICS INTELLIGENCE")
+    st.markdown("# 📦 LogiStream")
+
+    st.caption("LOGISTICS INTELLIGENCE")
 
     st.divider()
 
-    st.subheader("Data connection")
+    st.markdown("**Data connection**")
 
     st.success("DuckDB connected")
 
-    st.caption("Data source: Gold Delta tables")
+    st.caption("Source: Gold Delta tables")
 
-    if st.button("🔄 Refresh dashboard", use_container_width=True):
+    if st.button(
+        "↻ Refresh dashboard",
+        use_container_width=True,
+    ):
         query.clear()
         st.rerun()
 
-    st.caption("Dashboard automatically refreshes cached queries every 60 seconds.")
+    st.caption("Data refresh interval: 60 seconds")
 
     st.divider()
 
-    st.caption("AI assistant powered separately by Groq + RAG + MCP.")
+    st.caption(
+        "Analytics powered by DuckDB and Delta Lake."
+    )
 
 
-# ---------------------------------------------------------- HEADER
+# ----------------------------------------------------------
+# HEADER
+# ----------------------------------------------------------
 
-st.title("Logistics Control Tower")
+st.title("Overview")
 
 st.markdown(
-    "Monitor delivery operations, shipment performance, "
-    "hub activity and incident reports across Delhi-NCR."
+    '<p class="section-caption">'
+    'Monitor logistics operations, delivery performance and '
+    'network activity across Delhi-NCR.'
+    '</p>',
+    unsafe_allow_html=True,
 )
 
 
-# ---------------------------------------------------------- KPI DATA
+# ----------------------------------------------------------
+# KPI DATA
+# ----------------------------------------------------------
 
 kpi_sql = """
 SELECT
@@ -160,25 +315,27 @@ if kpi.empty:
 k = kpi.iloc[0]
 
 st.caption(
-    f"Data as of: {as_of} | "
+    f"Data as of: {as_of} · "
     "Based on the newest event available in the data lake."
 )
 
 
-# ---------------------------------------------------------- KPI CARDS
+# ----------------------------------------------------------
+# KPI CARDS
+# ----------------------------------------------------------
 
-st.subheader("Operational overview")
+st.subheader("Delivery performance")
 
 c1, c2, c3, c4 = st.columns(4)
 
 c1.metric(
-    "Total orders",
-    format_number(k["orders"]),
+    "Delivered shipments",
+    format_number(k["delivered"]),
 )
 
 c2.metric(
-    "Delivered shipments",
-    format_number(k["delivered"]),
+    "On-time delivery rate",
+    format_number(k["on_time_pct"], "%"),
 )
 
 c3.metric(
@@ -187,20 +344,21 @@ c3.metric(
 )
 
 c4.metric(
-    "On-time delivery rate",
-    format_number(k["on_time_pct"], "%"),
-)
-
-
-c5, c6, c7, c8 = st.columns(4)
-
-c5.metric(
     "Average delivery time",
     format_number(k["avg_delivery_min"], " min"),
 )
 
+st.subheader("Order activity")
+
+c5, c6, c7, c8 = st.columns(4)
+
+c5.metric(
+    "Total orders",
+    format_number(k["orders"]),
+)
+
 c6.metric(
-    "In transit orders",
+    "In-transit orders",
     format_number(k["in_transit"]),
 )
 
@@ -210,14 +368,17 @@ c7.metric(
 )
 
 c8.metric(
-    "Currently delayed shipments",
+    "Currently delayed",
     format_number(k["currently_delayed"]),
 )
+
 
 st.divider()
 
 
-# ---------------------------------------------------------- DAILY TRENDS
+# ----------------------------------------------------------
+# DELIVERY TRENDS
+# ----------------------------------------------------------
 
 st.subheader("Delivery trends")
 
@@ -239,7 +400,8 @@ if not show_empty_message(daily, "No daily trend data available."):
     left, right = st.columns(2)
 
     with left:
-        st.markdown("**Late delivery rate by day**")
+
+        st.markdown("**Late delivery rate**")
 
         fig = px.line(
             daily,
@@ -256,24 +418,37 @@ if not show_empty_message(daily, "No daily trend data available."):
             },
         )
 
+        fig.update_traces(
+            line=dict(width=3),
+            marker=dict(size=7),
+        )
+
         fig.update_layout(
-            yaxis_title="Late delivery rate (%)",
             xaxis_title="",
+            yaxis_title="Late delivery rate (%)",
             hovermode="x unified",
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True,
+        )
 
         st.caption(
-            "The newest day may be a partial day, ending at the latest event time."
+            "The latest day may be partial, ending at the newest "
+            "event recorded in the data lake."
         )
 
     with right:
+
         st.markdown("**Deliveries vs late deliveries**")
 
         melted = daily.melt(
             id_vars="date",
-            value_vars=["deliveries", "late_deliveries"],
+            value_vars=[
+                "deliveries",
+                "late_deliveries",
+            ],
             var_name="type",
             value_name="count",
         )
@@ -297,13 +472,18 @@ if not show_empty_message(daily, "No daily trend data available."):
             legend_title="",
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True,
+        )
 
 
 st.divider()
 
 
-# ---------------------------------------------------------- HUB PERFORMANCE
+# ----------------------------------------------------------
+# HUB PERFORMANCE
+# ----------------------------------------------------------
 
 st.subheader("Hub performance")
 
@@ -338,6 +518,7 @@ if not show_empty_message(hubs, "No hub performance data available."):
     left, right = st.columns([1.2, 1])
 
     with left:
+
         st.markdown("**Late deliveries by hub**")
 
         fig = px.bar(
@@ -349,7 +530,10 @@ if not show_empty_message(hubs, "No hub performance data available."):
                 "late_deliveries": "Late deliveries",
                 "hub": "Destination hub",
             },
-            hover_data=["deliveries", "on_time_pct"],
+            hover_data=[
+                "deliveries",
+                "on_time_pct",
+            ],
         )
 
         fig.update_layout(
@@ -358,9 +542,13 @@ if not show_empty_message(hubs, "No hub performance data available."):
             yaxis_title="",
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            style_chart(fig, height=380),
+            use_container_width=True,
+        )
 
     with right:
+
         st.markdown("**Hub performance details**")
 
         display_hubs = hubs.copy()
@@ -375,55 +563,92 @@ if not show_empty_message(hubs, "No hub performance data available."):
             display_hubs,
             hide_index=True,
             use_container_width=True,
+            height=380,
         )
 
 
 st.divider()
 
 
-# ---------------------------------------------------------- DELHI-NCR HUB MAP
+# ----------------------------------------------------------
+# HUB NETWORK MAP
+# ----------------------------------------------------------
 
-st.divider()
-st.subheader("Delhi-NCR Hub Network")
+st.subheader("Delhi-NCR hub network")
 
 st.caption(
-    "Geographical overview of the logistics hubs. "
+    "Geographical overview of registered logistics hubs. "
     "Marker positions are approximate locality coordinates."
 )
 
 hub_locations = pd.DataFrame([
-    {"hub": "Connaught Place Central", "latitude": 28.6315, "longitude": 77.2167},
-    {"hub": "Tagore Garden Depot", "latitude": 28.6507, "longitude": 77.1023},
-    {"hub": "Dwarka Depot", "latitude": 28.5921, "longitude": 77.0460},
-    {"hub": "Rohini Depot", "latitude": 28.7495, "longitude": 77.0565},
-    {"hub": "Noida Sector 62 Depot", "latitude": 28.6270, "longitude": 77.3720},
-    {"hub": "Mayur Vihar", "latitude": 28.6070, "longitude": 77.2955},
-    {"hub": "Greater Noida Depot", "latitude": 28.4752, "longitude": 77.5217},
-    {"hub": "Cyber City Depot", "latitude": 28.4944, "longitude": 77.0906},
+    {
+        "hub": "Connaught Place Central",
+        "latitude": 28.6315,
+        "longitude": 77.2167,
+    },
+    {
+        "hub": "Tagore Garden Depot",
+        "latitude": 28.6507,
+        "longitude": 77.1023,
+    },
+    {
+        "hub": "Dwarka Depot",
+        "latitude": 28.5921,
+        "longitude": 77.0460,
+    },
+    {
+        "hub": "Rohini Depot",
+        "latitude": 28.7495,
+        "longitude": 77.0565,
+    },
+    {
+        "hub": "Noida Sector 62 Depot",
+        "latitude": 28.6270,
+        "longitude": 77.3720,
+    },
+    {
+        "hub": "Mayur Vihar",
+        "latitude": 28.6070,
+        "longitude": 77.2955,
+    },
+    {
+        "hub": "Greater Noida Depot",
+        "latitude": 28.4752,
+        "longitude": 77.5217,
+    },
+    {
+        "hub": "Cyber City Depot",
+        "latitude": 28.4944,
+        "longitude": 77.0906,
+    },
 ])
 
-# Display the map using Streamlit's built-in map component.
 st.map(
     hub_locations,
     latitude="latitude",
     longitude="longitude",
     size=180,
-    color="#16A34A",
+    color="#2563EB",
     zoom=9,
     use_container_width=True,
 )
 
-# Show hub names below the map.
-st.caption("Registered logistics hubs")
+with st.expander("View registered hubs"):
 
-st.dataframe(
-    hub_locations[["hub"]],
-    hide_index=True,
-    use_container_width=True,
-)
+    st.dataframe(
+        hub_locations[["hub"]],
+        hide_index=True,
+        use_container_width=True,
+    )
 
 
-# ---------------------------------------------------------- INCIDENT ANALYTICS
+st.divider()
+
+
+# ----------------------------------------------------------
+# INCIDENT ANALYTICS
+# ----------------------------------------------------------
 
 st.subheader("Incident analytics")
 
@@ -441,6 +666,7 @@ if not show_empty_message(inc, "No incident reports available."):
     left, right = st.columns([1.2, 1])
 
     with left:
+
         st.markdown("**Incident reports by hub**")
 
         fig = px.bar(
@@ -460,28 +686,36 @@ if not show_empty_message(inc, "No incident reports available."):
             yaxis_title="",
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            style_chart(fig, height=340),
+            use_container_width=True,
+        )
 
     with right:
+
         st.markdown("**Incident report details**")
 
         st.dataframe(
             inc,
             hide_index=True,
             use_container_width=True,
+            height=340,
         )
 
     st.caption(
-        "Some areas may appear under different names in the source data, "
-        "such as Delhi and New Delhi."
+        "Some areas may appear under different names in the source "
+        "data, such as Delhi and New Delhi."
     )
 
 
-# ---------------------------------------------------------- FOOTER
+# ----------------------------------------------------------
+# FOOTER
+# ----------------------------------------------------------
 
 st.divider()
 
 st.caption(
-    "LogiStream | Real-time logistics intelligence | "
-    "PostgreSQL → Debezium → Redpanda → Spark → Delta Lake → DuckDB"
+    "LogiStream · Logistics Intelligence · "
+    "PostgreSQL → Debezium → Redpanda → Spark → "
+    "Delta Lake → DuckDB"
 )

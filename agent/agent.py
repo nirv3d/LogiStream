@@ -233,6 +233,7 @@ def to_groq_tools(mcp_tools):
         None
     )
 
+    
     if delivery_tool:
         alias = json.loads(json.dumps(delivery_tool))
         alias["function"]["name"] = "delivery_summar"
@@ -243,7 +244,26 @@ def to_groq_tools(mcp_tools):
         )
         declarations.append(alias)
 
+    # Compatibility alias for Qwen camelCase tool-name variation.
+    schema_tool = next(
+        (
+            item for item in declarations
+            if item["function"]["name"] == "describe_schema"
+        ),
+        None
+    )
+
+    if schema_tool:
+        alias = json.loads(json.dumps(schema_tool))
+        alias["function"]["name"] = "describeSchema"
+        alias["function"]["description"] = (
+            "Compatibility alias for describe_schema. "
+            "Use this to inspect the available Gold database schema."
+        )
+        declarations.append(alias)
+
     return declarations or None
+
 
 
 def _compact(text):
@@ -363,6 +383,8 @@ class Agent:
         # Map model-generated aliases to actual MCP tool names.
         if name == "delivery_summar":
             name = "delivery_summary"
+        elif name == "describeSchema":
+            name = "describe_schema"
 
         if isinstance(args, str):
             try:
