@@ -21,15 +21,17 @@ Run from D:\\LogiStream:
 
 import argparse
 import asyncio
+import difflib
 import json
 import os
+import re
 import sys
 import time
 from contextlib import AsyncExitStack
 from pathlib import Path
 
 from dotenv import load_dotenv
-from groq import Groq
+from groq import BadRequestError, Groq
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -50,6 +52,9 @@ GROQ_TIMEOUT_SECONDS = int(
 MAX_TOOL_CHARS = int(os.environ.get("MAX_TOOL_CHARS", "12000"))
 
 MAX_STEPS = 6
+# How many broken tool calls per question may be repaired or retried. Every repair
+# is counted in the result ("recoveries", "aliases") so the write-up can report it.
+MAX_RECOVERIES = 3
 SETUPS = ("llm", "rag", "mcp", "both")
 
 
@@ -266,6 +271,78 @@ def to_groq_tools(mcp_tools):
 
 
 
+# ------------------------------------------- repairing broken tool calls
+# Qwen on Groq sometimes writes a tool call in a broken format, for example
+# <function=tool><parameter=tool_name>delivery_summary</parameter>. Groq rejects it
+# with HTTP 400 "tool_use_failed" and puts the raw text in "failed_generation".
+# We read that text, find the real tool name in it, and run that tool. Every repair
+# is counted in the result. If no real tool name can be found, the model is asked
+# to call the tool again.
+
+def _tool_failure(exc):
+    """If a Groq 400 error is a failed tool call, return (failed_generation, message)."""
+    body = getattr(exc, "body", None)
+    candidates = []
+    if isinstance(body, dict):
+        candidates = [body, body.get("error")]
+    for cand in candidates:
+        if isinstance(cand, dict) and cand.get("code") == "tool_use_failed":
+            return cand.get("failed_generation") or "", cand.get("message") or ""
+    text = str(exc)
+    if "tool_use_failed" in text:
+        m = re.search(r"'failed_generation':\s*(.*)\}\}\s*$", text, re.S)
+        msg = re.search(r"'message':\s*[\"'](.*?)[\"'],\s*'type'", text, re.S)
+        return (m.group(1) if m else text), (msg.group(1) if msg else "")
+    return None
+
+
+def _norm(text):
+    return re.sub(r"[^a-z0-9]", "", str(text).lower())
+
+
+def _resolve_tool_name(failed, valid):
+    """Which real tool did the model mean? Returns (name, how) or None."""
+    by_norm = {_norm(v): v for v in valid}
+    m = re.search(r"<function[=\s]+([^>\n<]+)", failed)
+    if m:
+        raw = m.group(1).strip().strip("\"'")
+        n = _norm(raw)
+        if n in by_norm:
+            return by_norm[n], ("exact" if raw in valid else "normalized")
+        close = difflib.get_close_matches(n, list(by_norm), n=1, cutoff=0.85)
+        if close:
+            return by_norm[close[0]], "fuzzy"
+    # The real name may appear elsewhere in the text, e.g. <function=tool><parameter=delivery_summary>
+    hits = [(failed.find(v), v) for v in sorted(valid, key=len, reverse=True) if v in failed]
+    if hits:
+        return min(hits)[1], "found in text"
+    return None
+
+
+def _parse_args(failed, allowed):
+    """Read <parameter=key>value</parameter> pairs; keep only real parameters of the tool."""
+    args = {}
+    pattern = r"<parameter=([^>\n]+)>\s*(.*?)\s*(?=</parameter>|<parameter=|</function>|$)"
+    for key, value in re.findall(pattern, failed, re.S):
+        key, value = key.strip(), value.strip()
+        if key not in allowed or value == "":
+            continue
+        try:
+            args[key] = json.loads(value)
+        except Exception:
+            args[key] = value
+    return args
+
+
+def repair_tool_call(failed, valid, params_by_tool):
+    """Returns (tool name, arguments, how the name was found) or None."""
+    resolved = _resolve_tool_name(failed, valid)
+    if not resolved:
+        return None
+    name, how = resolved
+    return name, _parse_args(failed, params_by_tool.get(name, set())), how
+
+
 def _compact(text):
     """Reduce the size of JSON tool output."""
     try:
@@ -303,6 +380,7 @@ class Agent:
         self.session = None
         self.tools = []
         self.groq_tools = None
+        self.tool_params = {}   # tool name -> parameter names (used to repair broken calls)
         self._stack = None
 
         self.system = (
@@ -364,6 +442,10 @@ class Agent:
 
             # Convert them into Groq-compatible function declarations.
             self.groq_tools = to_groq_tools(mcp_tools)
+            self.tool_params = {
+                t.name: set((t.inputSchema or {}).get("properties", {}))
+                for t in mcp_tools
+            }
 
         return self
 
@@ -430,6 +512,8 @@ class Agent:
             "prompt_tokens": 0,
             "gen_tokens": 0,
             "seconds": 0.0,
+            "recoveries": 0,   # broken tool calls that had to be repaired or retried
+            "aliases": [],     # repairs where the tool name was not exactly right
             "error": None
         }
 
@@ -470,7 +554,7 @@ class Agent:
 
             # ------------------------------------------- Groq loop
 
-            for _ in range(MAX_STEPS):
+            for _ in range(MAX_STEPS + MAX_RECOVERIES):
 
                 # Send the conversation to Groq.
                 request = {
@@ -483,10 +567,57 @@ class Agent:
                     request["tools"] = self.groq_tools
                     request["tool_choice"] = "auto"
 
-                response = await asyncio.to_thread(
-                    self.client.chat.completions.create,
-                    **request
-                )
+                try:
+                    response = await asyncio.to_thread(
+                        self.client.chat.completions.create,
+                        **request
+                    )
+                except BadRequestError as exc:
+                    failure = _tool_failure(exc)
+                    if failure is None or result["recoveries"] >= MAX_RECOVERIES:
+                        raise
+                    failed, message = failure
+                    result["recoveries"] += 1
+
+                    fixed = None
+                    if "did not match schema" not in message:
+                        fixed = repair_tool_call(
+                            failed, list(self.tool_params), self.tool_params
+                        )
+
+                    if fixed:
+                        name, args, how = fixed
+                        if how != "exact":
+                            result["aliases"].append(f"{how}: {name}")
+                        call_id = f"repaired_{result['recoveries']}"
+                        text, ok = await self._call_tool(name, args)
+                        result["tool_calls"].append({
+                            "name": name, "arguments": args, "ok": ok,
+                            "chars": len(text), "repaired": True
+                        })
+                        messages.append({
+                            "role": "assistant",
+                            "content": "",
+                            "tool_calls": [{
+                                "id": call_id, "type": "function",
+                                "function": {"name": name, "arguments": json.dumps(args)}
+                            }]
+                        })
+                        messages.append({
+                            "role": "tool", "tool_call_id": call_id, "content": text
+                        })
+                    else:
+                        names = ", ".join(self.tool_params)
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "Your last tool call was rejected"
+                                + (f" ({message})" if message else "")
+                                + ". Call the right tool again using its exact name "
+                                f"from this list: {names}. Give every required argument."
+                            )
+                        })
+                    continue
 
                 result["steps"] += 1
 

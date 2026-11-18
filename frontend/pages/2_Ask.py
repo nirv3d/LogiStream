@@ -1,4 +1,3 @@
-
 """
 Ask LogiStream - AI Assistant
 
@@ -238,11 +237,13 @@ if ask_clicked and question.strip():
         with st.spinner(
             "Retrieving definitions and querying logistics data..."
         ):
-            st.session_state.history[q] = asyncio.run(
-                ask_agent(q)
-            )
+            result = asyncio.run(ask_agent(q))
 
-    r = st.session_state.history[q]
+        # Only keep successful answers, so a failed question is retried next time.
+        if not result["error"]:
+            st.session_state.history[q] = result
+
+    r = result if q not in st.session_state.history else st.session_state.history[q]
 
     st.divider()
 
@@ -345,4 +346,3 @@ st.caption(
     "LogiStream AI · Groq + RAG + MCP · "
     "Ollama embeddings"
 )
-
